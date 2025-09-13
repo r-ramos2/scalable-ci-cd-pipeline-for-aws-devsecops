@@ -1,26 +1,26 @@
-# Scalable CI/CD Pipeline & AWS DevSecOps Homelab
+# Scalable CI/CD Pipeline for AWS DevSecOps
 
-[![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.5.0-blue)](https://www.terraform.io/) [![Jenkins](https://img.shields.io/badge/Jenkins-LTS-blue)](https://www.jenkins.io/) [![Docker](https://img.shields.io/badge/Docker-%3E%3D20.10-blue)](https://www.docker.com/) [![SonarQube](https://img.shields.io/badge/SonarQube-LTS-blue)](https://www.sonarqube.org/) [![Trivy](https://img.shields.io/badge/Trivy-%3E%3D0.46-blue)](https://github.com/aquasecurity/trivy) [![OPA/Gatekeeper](https://img.shields.io/badge/OPA-Gatekeeper-blue)](https://github.com/open-policy-agent/gatekeeper)
+[![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.5.0-blue)](https://www.terraform.io/) [![Jenkins](https://img.shields.io/badge/Jenkins-LTS-blue)](https://www.jenkins.io/) [![Docker](https://img.shields.io/badge/Docker-%3E%3D20.10-blue)](https://www.docker.com/) [![SonarQube](https://img.shields.io/badge/SonarQube-LTS-blue)](https://www.sonarqube.org/) [![Trivy](https://img.shields.io/badge/Trivy-%3E%3D0.46-blue)](https://github.com/aquasecurity/trivy)
 
-☁️ **AWS DevSecOps Homelab**
-Automated CI/CD pipeline with secure AWS landing zone, EKS with OPA/Gatekeeper policy enforcement, Terraform, Jenkins, Docker, SonarQube, Trivy, OWASP Dependency-Check, and Lambda auto-remediation for misconfigured resources. Includes a **full bootstrap script** with optional auto-cleanup.
+☁️ **AWS DevSecOps Homelab**  
+Automated CI/CD pipeline deploying a React frontend on EC2 with Terraform, Jenkins, Docker, SonarQube, Trivy, OWASP Dependency-Check.
 
 ---
 
 ## Table of Contents
 
-1. [Topology](#topology)
-2. [Architecture Overview](#architecture-overview)
-3. [Prerequisites](#prerequisites)
-4. [Repository Structure](#repository-structure)
-5. [Getting Started](#getting-started)
-6. [Bootstrap Script & Cleanup](#bootstrap-script--cleanup)
-7. [Instance Configuration](#instance-configuration)
-8. [Jenkins & Tool Configuration](#jenkins--tool-configuration)
-9. [Pipeline Setup](#pipeline-setup)
-10. [Application Folder (`/app`)](#application-folder-app)
-11. [Best Practices](#best-practices)
-12. [Next Steps & Enhancements](#next-steps--enhancements)
+1. [Topology](#topology)  
+2. [Architecture Overview](#architecture-overview)  
+3. [Prerequisites](#prerequisites)  
+4. [Repository Structure](#repository-structure)  
+5. [Getting Started](#getting-started)  
+6. [Instance Configuration](#instance-configuration)  
+7. [Jenkins Configuration & Tools](#jenkins-configuration--tools)  
+8. [Pipeline Setup](#pipeline-setup)  
+9. [Application Folder (`/app`)](#application-folder-app)  
+10. [Cleanup](#cleanup)  
+11. [Best Practices](#best-practices)  
+12. [Next Steps & Enhancements](#next-steps--enhancements)  
 13. [Resources](#resources)
 
 ---
@@ -29,44 +29,28 @@ Automated CI/CD pipeline with secure AWS landing zone, EKS with OPA/Gatekeeper p
 
 ![Architecture Diagram](images/architecture-diagram.png)
 
-Single public VPC hosting:
-
-* EC2 for Jenkins, Docker, SonarQube, Trivy
-* Managed EKS cluster with OPA/Gatekeeper
-* Lambda functions for auto-remediation of misconfigured S3 buckets
-* GuardDuty & AWS Config monitoring
+Single public VPC with one EC2 host running Jenkins, Docker, SonarQube, and Trivy; secured by a dedicated SG.
 
 ---
 
 ## Architecture Overview
 
-* **VPC & Subnets**: provisioned by Terraform
-* **Security Groups**: SSH (22), HTTP/HTTPS (80/443), Jenkins (8080), SonarQube (9000), React app (3000)
-* **EC2 Instance**: Amazon Linux 2 (`t3.large`) running:
-
-  * Jenkins, Docker, SonarQube, Trivy
-  * Lambda invoke CLI
-* **EKS Cluster**: managed via Terraform + Helm for Gatekeeper
-* **Policies** enforced via Gatekeeper:
-
-  * No `:latest` container images
-  * No privileged containers
-  * Mandatory `app` and `owner` labels
-* **AWS Config & Lambda**:
-
-  * Auto-remediates public S3 buckets
-  * Captures evidence logs
+- **VPC & Subnet**: provisioned by Terraform  
+- **Security Group**: SSH (22), HTTP (80), HTTPS (443), Jenkins (8080), SonarQube (9000), React (3000)  
+- **EC2 Instance**: Amazon Linux 2 (`t3.large`) running:
+  - Jenkins  
+  - Docker Engine & SonarQube container  
+  - Trivy CLI
 
 ---
 
 ## Prerequisites
 
-* AWS CLI (`aws configure`)
-* Terraform ≥ 1.5.0
-* Docker
-* `kubectl` & `helm` (optional; EC2 bootstrap installs required tools)
-* Jenkins admin credentials
-* (Optionally) existing EC2 keypair
+- AWS CLI (`aws configure`)  
+- Terraform >= 1.5.0  
+- Docker Hub account  
+- Jenkins admin creds  
+- (Optionally) existing EC2 keypair
 
 ---
 
@@ -75,90 +59,64 @@ Single public VPC hosting:
 ```text
 .
 ├── app/                   # React frontend
-├── kube/                  # Gatekeeper templates & constraints
-├── lambda/                # S3 remediation Lambda
-├── scripts/               # Bootstrap, simulate, and validation scripts
-├── terraform/             # Terraform configs (bootstrap, main, eks)
-├── Jenkinsfile            # CI/CD pipeline definition
-├── Makefile               # Convenience commands
+├── images/                # Diagrams
+├── scripts/               # Bootstrap script
+│   └── install_jenkins.sh # loaded via Terraform file()
+├── terraform/             # Terraform configs
+│   ├── provider.tf
+│   ├── variables.tf
+│   ├── main.tf
+│   └── outputs.tf
+├── Jenkinsfile            # Pipeline definition
 └── README.md              # This file
-```
+````
 
 ---
 
 ## Getting Started
 
-### 1. Clone the repository
+### 1. Clone the repo
 
 ```bash
-git clone https://github.com/your-repo/scalable-ci-cd-pipeline-for-aws-devsecops.git
-cd scalable-ci-cd-pipeline-for-aws-devsecops
-chmod +x scripts/*.sh
+git clone https://github.com/r-ramos2/scalable-ci-cd-pipeline-for-aws-devsecops.git
+cd scalable-ci-cd-pipeline-for-aws-devsecops/terraform
 ```
 
-### 2. Configure Terraform variables
+### 2. Configure Variables & Keypair
 
-Create or edit `terraform.tfvars`:
+Terraform auto-generates an RSA keypair with random suffix. Override defaults in `variables.tf` or `terraform.tfvars`:
 
 ```hcl
-region        = "us-east-1"
-instance_type = "t3.large"
-my_ip         = "203.0.113.0/32"
+region          = "us-east-1"
+ami_name_filter = "amzn2-ami-hvm-*-gp2"
+instance_type   = "t3.large"  # t3.medium for light, c5.large for compute
+my_ip           = "203.0.113.0/32"
 ```
 
-### 3. Provision infrastructure
+### 3. Provision Infrastructure
 
 ```bash
-terraform -chdir=terraform/bootstrap-backend init
-terraform -chdir=terraform/bootstrap-backend apply -auto-approve
-
-terraform -chdir=terraform/main init
-terraform -chdir=terraform/main apply -auto-approve
-
-terraform -chdir=terraform/eks init
-terraform -chdir=terraform/eks apply -auto-approve
+terraform init
+terraform validate
+tf plan -out=plan.tf
+terraform apply plan.tf
 ```
 
-Outputs include `deployer_key.pem`, EC2 public IP, Jenkins URL, SonarQube URL, React app URL, and EKS kubeconfig.
+Outputs:
 
----
-
-## Bootstrap Script & Cleanup
-
-`./scripts/bootstrap.sh` automates:
-
-* Backend creation (S3 + DynamoDB for remote Terraform state)
-* Main infrastructure deployment
-* EKS cluster creation & Gatekeeper constraints
-* Jenkins, Docker, SonarQube, Trivy setup
-* Lambda auto-remediation deployment
-* Evidence collection (`evidence/`)
-* Optional auto-cleanup
-
-**Usage examples**:
-
-```bash
-# Default: auto-cleanup after 1 hour
-./scripts/bootstrap.sh
-
-# Keep infrastructure running
-./scripts/bootstrap.sh --no-cleanup
-
-# Custom auto-cleanup delay
-./scripts/bootstrap.sh --cleanup-after 30
-```
+- `deployer_key.pem`
+- `instance_public_ip`
+- `jenkins_url`, `sonarqube_url`, `react_app_url`
 
 ---
 
 ## Instance Configuration
 
-SSH into EC2:
-
 ```bash
-ssh -i terraform/deployer_key.pem ec2-user@${instance_public_ip}
+ssh -i ../terraform/deployer_key.pem ec2-user@${instance_public_ip}
 ```
 
-Verify services:
+Verify:
 
 ```bash
 sudo systemctl status jenkins
@@ -168,23 +126,20 @@ trivy --version
 
 ---
 
-## Jenkins & Tool Configuration
+## Jenkins Configuration & Tools
 
-1. Browse `http://${instance_public_ip}:8080`
-2. Install plugins:
-
-   * Docker Pipeline, SonarQube Scanner, OWASP Dependency-Check
+1. Browse to `http://${instance_public_ip}:8080`.
+2. Install plugins: Docker Pipeline, SonarQube Scanner, OWASP Dependency-Check.
 3. Configure global tools and credentials:
-
-   * JDK, NodeJS, SonarQube Scanner, Dependency-Check, Docker
-   * DockerHub and SonarQube token credentials
+   - JDK, NodeJS, SonarQube Scanner, Dependency-Check, Docker.
+   - Credentials: DockerHub (`dockerhub-creds`), SonarQube token (`sonar-server`).
 
 ---
 
 ## Pipeline Setup
 
-1. Create pipeline job (`amazon-frontend`)
-2. Use root `Jenkinsfile`; update Git repo URL, DockerHub creds, and image name
+1. Create Pipeline job (`amazon-frontend`).
+2. Use `Jenkinsfile` in root; update Git URL, DockerHub creds, image name.
 
 ---
 
@@ -199,32 +154,37 @@ Visit `http://localhost:3000`.
 
 ---
 
+## Cleanup
+
+```bash
+terraform destroy -auto-approve
+```
+
+---
+
 ## Best Practices
 
-* Least-privilege IAM for all roles
-* Restricted SSH ingress (CIDR-limited)
-* Remote Terraform state (S3 + DynamoDB locking)
-* Modular Terraform configuration
-* Evidence capture for auditors (`evidence/`)
-* Automated policy enforcement via Gatekeeper
+- Least-privilege IAM
+- Restricted SSH ingress
+- Remote state (S3 + DynamoDB)
+- Modular Terraform
 
 ---
 
 ## Next Steps & Enhancements
 
-* Expand GuardDuty auto-remediation
-* Additional Gatekeeper constraints & unit tests
-* CloudWatch alerts and logging improvements
-* Migrate to Argo CD / GitOps pipelines
-* Jenkins configuration backup automation
+- EKS Migration
+- CloudWatch alerts
+- Argo CD GitOps
+- Jenkins config backup
+- Additional security scans
 
 ---
 
 ## Resources
 
-* AWS Docs: [https://aws.amazon.com/documentation/](https://aws.amazon.com/documentation/)
-* Terraform: [https://www.terraform.io/docs](https://www.terraform.io/docs)
-* Jenkins: [https://www.jenkins.io/doc/](https://www.jenkins.io/doc/)
-* SonarQube: [https://docs.sonarqube.org/](https://docs.sonarqube.org/)
-* Trivy: [https://github.com/aquasecurity/trivy](https://github.com/aquasecurity/trivy)
-* OPA / Gatekeeper: [https://github.com/open-policy-agent/gatekeeper](https://github.com/open-policy-agent/gatekeeper)
+- AWS Docs: [https://aws.amazon.com/documentation/](https://aws.amazon.com/documentation/)
+- Terraform: [https://www.terraform.io/docs](https://www.terraform.io/docs)
+- Jenkins: [https://www.jenkins.io/doc/](https://www.jenkins.io/doc/)
+- SonarQube: [https://docs.sonarqube.org/](https://docs.sonarqube.org/)
+- Trivy: [https://github.com/aquasecurity/trivy](https://github.com/aquasecurity/trivy)
