@@ -10,10 +10,10 @@ COPY . .
 RUN npm run build
 
 # 2. Runtime Stage: serve with Nginx
-FROM nginx:stable‑alpine
+FROM nginx:stable-alpine
 
 # Remove default content
-RUN rm ‑rf /usr/share/nginx/html/*
+RUN rm -rf /usr/share/nginx/html/*
 
 # Copy built assets
 COPY --from=builder /app/build /usr/share/nginx/html
@@ -23,6 +23,6 @@ EXPOSE 80
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget ‑qO‑ http://localhost/ || exit 1
+  CMD wget -qO- http://localhost/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
