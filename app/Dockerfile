@@ -1,4 +1,3 @@
-#────────────────────────────────────────────────────────────────
 # 1. Build Stage: compile React app
 FROM node:16 AS builder
 
@@ -10,7 +9,6 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-#────────────────────────────────────────────────────────────────
 # 2. Runtime Stage: serve with Nginx
 FROM nginx:stable‑alpine
 
