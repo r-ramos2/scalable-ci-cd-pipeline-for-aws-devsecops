@@ -1,0 +1,3 @@
+# Ignore generated private key
+terraform/deployer_key.pem
+terraform/deployer_key.pem.*
