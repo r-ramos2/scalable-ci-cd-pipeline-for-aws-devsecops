@@ -98,7 +98,7 @@ my_ip           = "203.0.113.0/32"
 ```bash
 terraform init
 terraform validate
-tf plan -out=plan.tf
+terraform plan -out=plan.tf
 terraform apply plan.tf
 ```
 
