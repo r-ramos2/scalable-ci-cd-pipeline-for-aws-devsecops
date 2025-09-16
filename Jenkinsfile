@@ -101,7 +101,7 @@ pipeline {
     stage('Deploy & Smoke Test') {
       steps {
         sh "docker rm -f amazon || true"
-        # container listens on 80 inside image; map host 3000 to container 80
+        // container listens on 80 inside image; map host 3000 to container 80
         sh "docker run -d --name amazon -p 3000:80 ${env.IMAGE_NAME}"
         sh 'sleep 10'
         sh 'curl -f http://localhost:3000 || exit 1'
