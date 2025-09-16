@@ -1,51 +1,59 @@
 #!/bin/bash
 set -e
 
+# 0. Ensure script runs as root where needed
+if [ "$EUID" -ne 0 ]; then
+  SUDO='sudo'
+else
+  SUDO=''
+fi
+
 # 1. Update OS and install prerequisites
 echo "[INFO] Updating system and installing prerequisites..."
-sudo yum update -y
-sudo amazon-linux-extras install java-openjdk11 -y
-sudo yum install git wget unzip -y
+${SUDO} yum update -y
+${SUDO} yum install -y git wget unzip curl
 
-# 2. Install Docker
+# 2. Install Java 17 (Amazon Corretto 17)
+echo "[INFO] Installing Java 17 (Amazon Corretto)..."
+${SUDO} amazon-linux-extras enable corretto17 || true
+${SUDO} yum install -y java-17-amazon-corretto-devel
+java -version
+
+# 3. Install Docker
 echo "[INFO] Installing Docker..."
-sudo amazon-linux-extras install docker -y
-sudo service docker start
-sudo usermod -a -G docker ec2-user
+${SUDO} amazon-linux-extras install docker -y || ${SUDO} yum install -y docker
+${SUDO} systemctl enable --now docker
+# Add ec2-user to docker group if exists
+if id ec2-user >/dev/null 2>&1; then
+  ${SUDO} usermod -a -G docker ec2-user || true
+fi
 
-# 3. Install Jenkins
+# 4. Install Jenkins
 echo "[INFO] Installing Jenkins..."
-wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
-rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
-sudo yum install jenkins -y
-sudo systemctl enable jenkins
-sudo systemctl start jenkins
+${SUDO} wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+${SUDO} rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key || true
+${SUDO} yum install -y jenkins
+${SUDO} systemctl enable --now jenkins
 
-# 4. Run SonarQube in Docker
+# 5. Run SonarQube in Docker
 echo "[INFO] Deploying SonarQube container..."
-sudo docker pull sonarqube:lts
-sudo docker run -d --name sonarqube -p 9000:9000 sonarqube:lts
+${SUDO} docker pull sonarqube:lts
+# Run as non-blocking container; use a volume if desired
+${SUDO} docker run -d --name sonarqube -p 9000:9000 sonarqube:lts
 
-# 5. Install Trivy (Static & Image Scanner)
+# 6. Install Trivy (robust installer)
 echo "[INFO] Installing Trivy..."
-TRIVY_VERSION=$(curl -s https://api.github.com/repos/aquasecurity/trivy/releases/latest \
-  | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-ARCHIVE="trivy_${TRIVY_VERSION#v}_Linux-64bit.tar.gz"
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | ${SUDO} sh -s -- -b /usr/local/bin
+if ! command -v trivy >/dev/null 2>&1; then
+  echo "ERROR: trivy installation failed"
+  exit 1
+fi
 
-# download & extract
-curl -sL "https://github.com/aquasecurity/trivy/releases/download/${TRIVY_VERSION}/${ARCHIVE}" \
-  -o "/tmp/${ARCHIVE}"
-tar zxvf "/tmp/${ARCHIVE}" -C /tmp trivy
-sudo mv /tmp/trivy /usr/local/bin/trivy
-sudo chmod +x /usr/local/bin/trivy
-rm "/tmp/${ARCHIVE}"
-
-# 6. Verify installations
+# 7. Verify installations
 echo "[INFO] Verifying installations..."
-java --version
-sudo systemctl status jenkins --no-pager
-docker ps
-which trivy || { echo 'ERROR: trivy not found in PATH'; exit 1; }
+java --version || true
+${SUDO} systemctl status jenkins --no-pager || true
+${SUDO} docker ps || true
 trivy --version
 
 # Done
