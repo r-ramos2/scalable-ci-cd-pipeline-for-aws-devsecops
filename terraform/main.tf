@@ -8,7 +8,7 @@ locals {
 resource "tls_private_key" "deployer" {
   algorithm = "RSA"
   rsa_bits  = 4096
-
+}
 
 resource "random_id" "suffix" {
   byte_length = 4
@@ -79,12 +79,12 @@ resource "aws_security_group" "jenkins_sg" {
   description = "Allow SSH, HTTP, HTTPS, Jenkins, SonarQube, React App"
   vpc_id      = aws_vpc.lab.id
 
-  # SSH access for Jenkins management
+  # SSH access for Jenkins management - restricted to your IP (var.my_ip)
   ingress {
     from_port   = var.ssh_port
     to_port     = var.ssh_port
     protocol    = "tcp"
-    cidr_blocks = [var.allowed_cidr]
+    cidr_blocks = [var.my_ip]
   }
 
   # HTTP for React App
@@ -132,7 +132,7 @@ resource "aws_security_group" "jenkins_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = [var.allowed_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = merge(local.common_tags, { Name = "${local.project_name}-sg" })
@@ -161,6 +161,7 @@ resource "aws_instance" "jenkins" {
 output "private_key_path" {
   description = "Path to the generated SSH private key"
   value       = local_file.private_key_pem.filename
+  sensitive   = true
 }
 
 output "instance_public_ip" {
