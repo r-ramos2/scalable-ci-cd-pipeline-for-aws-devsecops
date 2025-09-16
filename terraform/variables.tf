@@ -28,7 +28,7 @@ variable "availability_zone" {
   default     = "us-east-1a"
 }
 variable "my_ip" {
-  description = "Your IP CIDR block for SSH access"
+  description = "Your IP CIDR block for SSH access (override this)"
   type        = string
   default     = "203.0.113.0/32"
 }
@@ -40,14 +40,14 @@ variable "linux2_ami_owner" {
   default     = "amazon"
 }
  variable "linux2_ami_name_filter" {
-   description = "Filter to find the latest Amazon Linux 2 AMI"
+   description = "Filter to find the latest Amazon Linux 2 AMI"
    type        = string
    default     = "amzn2-ami-hvm-*-gp2"
  }
 
 # Security
 variable "allowed_cidr" {
-  description = "CIDR block permitted to reach instances (SSH/HTTP/etc.)"
+  description = "CIDR block permitted to reach application ports (HTTP/HTTPS/etc.)"
   type        = string
   default     = "0.0.0.0/0"
 }
