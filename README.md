@@ -7,25 +7,48 @@ Automated CI/CD pipeline deploying a React frontend on EC2 with Terraform, Jenki
 
 ---
 
-## Table of Contents
+# Quickstart (Advanced Users)
 
-1. [Topology](#topology)  
-2. [Architecture Overview](#architecture-overview)  
-3. [Prerequisites](#prerequisites)  
-4. [Repository Structure](#repository-structure)  
-5. [Getting Started](#getting-started)  
-6. [Instance Configuration](#instance-configuration)  
-7. [Jenkins Configuration & Tools](#jenkins-configuration--tools)  
-8. [Pipeline Setup](#pipeline-setup)  
-9. [Application Folder (`/app`)](#application-folder-app)  
-10. [Cleanup](#cleanup)  
-11. [Best Practices](#best-practices)  
-12. [Next Steps & Enhancements](#next-steps--enhancements)  
+```bash
+# 1. Clone repo and enter terraform folder
+git clone https://github.com/r-ramos2/scalable-ci-cd-pipeline-for-aws-devsecops.git
+cd scalable-ci-cd-pipeline-for-aws-devsecops/terraform
+
+# 2. Configure your IP
+cp terraform.tfvars.example terraform.tfvars
+# edit terraform.tfvars → set my_ip = "YOUR_PUBLIC_IP/32"
+
+# 3. Deploy infrastructure
+terraform init
+terraform apply -auto-approve
+
+# 4. Connect to EC2
+ssh -i ./deployer_key.pem ec2-user@$(terraform output -raw instance_public_ip)
+
+# 5. Access Jenkins: http://$(terraform output -raw instance_public_ip):8080
+````
+
+---
+
+# Table of Contents
+
+1. [Topology](#topology)
+2. [Architecture Overview](#architecture-overview)
+3. [Prerequisites](#prerequisites)
+4. [Repository Structure](#repository-structure)
+5. [Getting Started](#getting-started)
+6. [Instance Configuration](#instance-configuration)
+7. [Jenkins Configuration & Tools](#jenkins-configuration--tools)
+8. [Pipeline Setup](#pipeline-setup)
+9. [Application Folder (`/app`)](#application-folder-app)
+10. [Cleanup](#cleanup)
+11. [Best Practices](#best-practices)
+12. [Next Steps & Enhancements](#next-steps--enhancements)
 13. [Resources](#resources)
 
 ---
 
-## Topology
+# Topology
 
 ![Architecture Diagram](images/architecture-diagram.png)
 
@@ -33,56 +56,57 @@ Single public VPC with one EC2 host running Jenkins, Docker, SonarQube, and Triv
 
 ---
 
-## Architecture Overview
+# Architecture Overview
 
-- **VPC & Subnet**: provisioned by Terraform  
-- **Security Group**: SSH (22), HTTP (80), HTTPS (443), Jenkins (8080), SonarQube (9000), React (3000)  
-- **EC2 Instance**: Amazon Linux 2 (`t3.large`) running:
-  - Jenkins  
-  - Docker Engine & SonarQube container  
-  - Trivy CLI
+* **VPC & Subnet**: provisioned by Terraform
+* **Security Group**: SSH (22), HTTP (80), HTTPS (443), Jenkins (8080), SonarQube (9000), React (3000)
+* **EC2 Instance**: Amazon Linux 2 (`t3.large`) running:
 
----
-
-## Prerequisites
-
-- AWS CLI (`aws configure`)  
-- Terraform >= 1.5.0  
-- Docker Hub account  
-- Jenkins admin creds  
-- (Optionally) existing EC2 keypair
+  * Jenkins
+  * Docker Engine & SonarQube container
+  * Trivy CLI
 
 ---
 
-## Repository Structure
+# Prerequisites
+
+* AWS CLI (`aws configure`)
+* Terraform >= 1.5.0
+* Docker Hub account
+* Jenkins admin creds
+* (Optionally) existing EC2 keypair
+
+---
+
+# Repository Structure
 
 ```text
 .
-├── app/                   # React frontend
-├── images/                # Diagrams
-├── scripts/               # Bootstrap script
-│   └── install_jenkins.sh # loaded via Terraform file()
-├── terraform/             # Terraform configs
+├── app/                   React frontend
+├── images/                Diagrams
+├── scripts/               Bootstrap script
+│   └── install_jenkins.sh loaded via Terraform file()
+├── terraform/             Terraform configs
 │   ├── provider.tf
 │   ├── variables.tf
 │   ├── main.tf
 │   └── outputs.tf
-├── Jenkinsfile            # Pipeline definition
-└── README.md              # This file
-````
+├── Jenkinsfile            Pipeline definition
+└── README.md              This file
+```
 
 ---
 
-## Getting Started
+# Getting Started
 
-### 1. Clone the repo
+## 1. Clone the repo
 
 ```bash
 git clone https://github.com/r-ramos2/scalable-ci-cd-pipeline-for-aws-devsecops.git
 cd scalable-ci-cd-pipeline-for-aws-devsecops/terraform
 ```
 
-### 2. Configure Variables & Keypair
+## 2. Configure Variables & Keypair
 
 Terraform auto-generates an RSA keypair with random suffix. Override defaults in `variables.tf` or `terraform.tfvars`:
 
@@ -93,7 +117,7 @@ instance_type   = "t3.large"  # t3.medium for light, c5.large for compute
 my_ip           = "203.0.113.0/32"
 ```
 
-### 3. Provision Infrastructure
+## 3. Provision Infrastructure
 
 ```bash
 terraform init
@@ -104,13 +128,13 @@ terraform apply plan.tf
 
 Outputs:
 
-- `deployer_key.pem`
-- `instance_public_ip`
-- `jenkins_url`, `sonarqube_url`, `react_app_url`
+* `deployer_key.pem`
+* `instance_public_ip`
+* `jenkins_url`, `sonarqube_url`, `react_app_url`
 
 ---
 
-## Instance Configuration
+# Instance Configuration
 
 ```bash
 ssh -i ../terraform/deployer_key.pem ec2-user@${instance_public_ip}
@@ -126,24 +150,25 @@ trivy --version
 
 ---
 
-## Jenkins Configuration & Tools
+# Jenkins Configuration & Tools
 
 1. Browse to `http://${instance_public_ip}:8080`.
 2. Install plugins: Docker Pipeline, SonarQube Scanner, OWASP Dependency-Check.
 3. Configure global tools and credentials:
-   - JDK, NodeJS, SonarQube Scanner, Dependency-Check, Docker.
-   - Credentials: DockerHub (`dockerhub-creds`), SonarQube token (`sonar-server`).
+
+   * JDK, NodeJS, SonarQube Scanner, Dependency-Check, Docker.
+   * Credentials: DockerHub (`dockerhub-creds`), SonarQube token (`sonar-server`).
 
 ---
 
-## Pipeline Setup
+# Pipeline Setup
 
 1. Create Pipeline job (`amazon-frontend`).
 2. Use `Jenkinsfile` in root; update Git URL, DockerHub creds, image name.
 
 ---
 
-## Application Folder (`/app`)
+# Application Folder (`/app`)
 
 ```bash
 docker build -t amazon-frontend ./app
@@ -154,7 +179,7 @@ Visit `http://localhost:3000`.
 
 ---
 
-## Cleanup
+# Cleanup
 
 ```bash
 terraform destroy -auto-approve
@@ -162,29 +187,29 @@ terraform destroy -auto-approve
 
 ---
 
-## Best Practices
+# Best Practices
 
-- Least-privilege IAM
-- Restricted SSH ingress
-- Remote state (S3 + DynamoDB)
-- Modular Terraform
-
----
-
-## Next Steps & Enhancements
-
-- EKS Migration
-- CloudWatch alerts
-- Argo CD GitOps
-- Jenkins config backup
-- Additional security scans
+* Least-privilege IAM
+* Restricted SSH ingress
+* Remote state (S3 + DynamoDB)
+* Modular Terraform
 
 ---
 
-## Resources
+# Next Steps & Enhancements
 
-- AWS Docs: [https://aws.amazon.com/documentation/](https://aws.amazon.com/documentation/)
-- Terraform: [https://www.terraform.io/docs](https://www.terraform.io/docs)
-- Jenkins: [https://www.jenkins.io/doc/](https://www.jenkins.io/doc/)
-- SonarQube: [https://docs.sonarqube.org/](https://docs.sonarqube.org/)
-- Trivy: [https://github.com/aquasecurity/trivy](https://github.com/aquasecurity/trivy)
+* EKS Migration
+* CloudWatch alerts
+* Argo CD GitOps
+* Jenkins config backup
+* Additional security scans
+
+---
+
+# Resources
+
+* AWS Docs: [https://aws.amazon.com/documentation/](https://aws.amazon.com/documentation/)
+* Terraform: [https://www.terraform.io/docs](https://www.terraform.io/docs)
+* Jenkins: [https://www.jenkins.io/doc/](https://www.jenkins.io/doc/)
+* SonarQube: [https://docs.sonarqube.org/](https://docs.sonarqube.org/)
+* Trivy: [https://github.com/aquasecurity/trivy](https://github.com/aquasecurity/trivy)
