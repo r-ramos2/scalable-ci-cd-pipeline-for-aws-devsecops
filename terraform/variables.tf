@@ -29,7 +29,7 @@ variable "availability_zone" {
 variable "my_ip" {
   description = "Your IP CIDR block for SSH access (override this)"
   type        = string
-  default     = "203.0.113.0/32"
+  default     = "203.0.113.0/32" # your home IP
 }
 
  # AMI Lookup
@@ -48,7 +48,7 @@ variable "linux2_ami_owner" {
 variable "allowed_cidr" {
   description = "CIDR block permitted to reach application ports (HTTP/HTTPS/etc.)"
   type        = string
-  default     = "0.0.0.0/0"
+  default     = "203.0.113.25/32" # your home IP
 }
 
 # Ports
