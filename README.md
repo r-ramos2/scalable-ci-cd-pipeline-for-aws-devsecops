@@ -33,20 +33,20 @@ ssh -i ./deployer_key.pem ec2-user@$(terraform output -raw instance_public_ip)
 
 ## Table of Contents
 
-1. Topology
-2. Architecture Overview
-3. Prerequisites
-4. Repository Structure
-5. Getting Started
-6. Instance Configuration
-7. Jenkins Configuration & Tools
-8. Pipeline Setup
-9. Application Folder (`/app`)
-10. Cleanup
-11. Best Practices
-12. Security Considerations (Portfolio note)
-13. Next Steps & Enhancements
-14. Resources
+1. [Topology](#topology)
+2. [Architecture Overview](#architecture-overview)
+3. [Prerequisites](#prerequisites)
+4. [Repository Structure](#repository-structure)
+5. [Getting Started](#getting-started)
+6. [Instance Configuration](#instance-configuration)
+7. [Jenkins Configuration & Tools](#jenkins-configuration--tools)
+8. [Pipeline Setup](#pipeline-setup)
+9. [Application Folder (/app)](#application-folder-app)
+10. [Cleanup](#cleanup)
+11. [Best Practices](#best-practices)
+12. [Security Considerations (Portfolio note)](#security-considerations-portfolio-note)
+13. [Next Steps & Enhancements](#next-steps--enhancements)
+14. [Resources](#resources)
 
 ---
 
