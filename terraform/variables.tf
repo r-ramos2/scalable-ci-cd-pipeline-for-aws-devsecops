@@ -1,4 +1,3 @@
-// variables.tf
 # Global settings
 variable "region" {
   description = "AWS region to deploy into"
