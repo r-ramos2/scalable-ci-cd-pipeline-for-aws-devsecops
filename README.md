@@ -44,7 +44,7 @@ ssh -i ./deployer_key.pem ec2-user@$(terraform output -raw instance_public_ip)
 9. [Application Folder (/app)](#application-folder-app)
 10. [Cleanup](#cleanup)
 11. [Best Practices](#best-practices)
-12. [Security Considerations (Portfolio note)](#security-considerations-portfolio-note)
+12. [Security Considerations](#security-considerations)
 13. [Next Steps & Enhancements](#next-steps--enhancements)
 14. [Resources](#resources)
 
