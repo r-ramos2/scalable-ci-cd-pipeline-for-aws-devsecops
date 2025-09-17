@@ -7,7 +7,7 @@ Automated CI/CD pipeline deploying a React frontend on EC2 with Terraform, Jenki
 
 ---
 
-## Getting Started
+## Quickstart (For Experienced Users)
 
 ```bash
 # 1. Clone repo and enter terraform folder
