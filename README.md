@@ -4,7 +4,7 @@
 
 ☁️ **AWS DevSecOps Homelab**
 
-Automated CI/CD pipeline deploying a React frontend on EC2 with Terraform, Jenkins, Docker, SonarQube, Trivy, and OWASP Dependency-Check.
+CI/CD pipeline deploying a React frontend on EC2 with Terraform, Jenkins, Docker, SonarQube, Trivy, and OWASP Dependency-Check.
 
 ---
 
