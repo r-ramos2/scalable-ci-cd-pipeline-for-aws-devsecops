@@ -1,4 +1,3 @@
-// main.tf
 locals {
   project_name = "aws-devsecops-homelab"
   common_tags  = { Project = local.project_name }
