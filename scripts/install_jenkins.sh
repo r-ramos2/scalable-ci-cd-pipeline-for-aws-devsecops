@@ -1,61 +1,91 @@
 #!/bin/bash
-set -e
+# idempotent bootstrap for Amazon Linux 2 (or compatible)
+# Logs everything to /var/log/bootstrap.log
+set -euo pipefail
+exec > /var/log/bootstrap.log 2>&1
 
-# 0. Ensure script runs as root where needed
+# run as root where needed
 if [ "$EUID" -ne 0 ]; then
   SUDO='sudo'
 else
   SUDO=''
 fi
 
+echo "[INFO] Bootstrap started at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
 # 1. Update OS and install prerequisites
 echo "[INFO] Updating system and installing prerequisites..."
 ${SUDO} yum update -y
-${SUDO} yum install -y git wget unzip curl
+${SUDO} yum install -y git wget unzip curl ca-certificates jq
 
-# 2. Install Java 17 (Amazon Corretto 17)
+# 2. Install Java 17 (Amazon Corretto 17) idempotent
 echo "[INFO] Installing Java 17 (Amazon Corretto)..."
 ${SUDO} amazon-linux-extras enable corretto17 || true
-${SUDO} yum install -y java-17-amazon-corretto-devel
-java -version
+${SUDO} yum install -y java-17-amazon-corretto-devel || true
+echo "[INFO] java version:"
+java -version || true
 
 # 3. Install Docker
 echo "[INFO] Installing Docker..."
-${SUDO} amazon-linux-extras install docker -y || ${SUDO} yum install -y docker
-${SUDO} systemctl enable --now docker
-# Add ec2-user to docker group if exists
-if id ec2-user >/dev/null 2>&1; then
-  ${SUDO} usermod -a -G docker ec2-user || true
+# Try amazon-linux-extras first; fallback to yum
+if ! ${SUDO} amazon-linux-extras list | grep -q docker; then
+  ${SUDO} yum install -y docker || true
+else
+  ${SUDO} amazon-linux-extras install docker -y || ${SUDO} yum install -y docker
 fi
+${SUDO} systemctl enable --now docker
+# Add ec2-user and jenkins to docker group if those accounts exist
+for u in ec2-user jenkins; do
+  if id "$u" >/dev/null 2>&1; then
+    ${SUDO} usermod -a -G docker "$u" || true
+  fi
+done
 
-# 4. Install Jenkins
+# 4. Install Jenkins (idempotent)
 echo "[INFO] Installing Jenkins..."
-${SUDO} wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
-${SUDO} rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key || true
-${SUDO} yum install -y jenkins
+JENKINS_REPO="/etc/yum.repos.d/jenkins.repo"
+${SUDO} wget -q -O "${JENKINS_REPO}" https://pkg.jenkins.io/redhat-stable/jenkins.repo || true
+${SUDO} rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key || true
+${SUDO} yum install -y jenkins || true
 ${SUDO} systemctl enable --now jenkins
 
-# 5. Run SonarQube in Docker
-echo "[INFO] Deploying SonarQube container..."
-${SUDO} docker pull sonarqube:lts
-# Run as non-blocking container; use a volume if desired
-${SUDO} docker run -d --name sonarqube -p 9000:9000 sonarqube:lts
+# Give Jenkins a moment to create its home directory
+sleep 3
 
-# 6. Install Trivy (robust installer)
+# 5. Run SonarQube in Docker (detached). SonarQube needs RAM.
+echo "[INFO] Deploying SonarQube container (detached)..."
+# If container exists, recreate gracefully
+if ${SUDO} docker ps -a --format '{{.Names}}' | grep -q '^sonarqube$'; then
+  ${SUDO} docker rm -f sonarqube || true
+fi
+# Use a named volume for persistence (optional)
+${SUDO} docker pull sonarqube:lts
+${SUDO} docker run -d --name sonarqube -p 9000:9000 \
+  -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true \
+  sonarqube:lts
+
+# 6. Install Trivy using official installer (robust)
 echo "[INFO] Installing Trivy..."
-curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | ${SUDO} sh -s -- -b /usr/local/bin
 if ! command -v trivy >/dev/null 2>&1; then
-  echo "ERROR: trivy installation failed"
+  curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | ${SUDO} sh -s -- -b /usr/local/bin
+fi
+if ! command -v trivy >/dev/null 2>&1; then
+  echo "[ERROR] trivy installation failed"
   exit 1
 fi
+echo "[INFO] trivy version: $(trivy --version | head -n1)"
 
-# 7. Verify installations
-echo "[INFO] Verifying installations..."
-java --version || true
-${SUDO} systemctl status jenkins --no-pager || true
-${SUDO} docker ps || true
-trivy --version
+# 7. Ensure PATH changes are picked up by services (reload systemd environment)
+${SUDO} systemctl daemon-reload || true
 
-# Done
-echo "[INFO] Jenkins bootstrap complete."
-echo "[INFO] Access Jenkins at port 8080, SonarQube at port 9000."
+# Restart Jenkins so it inherits docker group membership and PATH
+echo "[INFO] Restarting Jenkins so it picks up group membership and PATH"
+${SUDO} systemctl restart jenkins || true
+
+# 8. Basic verification (non-blocking)
+echo "[INFO] Verifying services (non-blocking) ..."
+${SUDO} systemctl is-active --quiet jenkins && echo "[OK] jenkins running" || echo "[WARN] jenkins not active yet"
+${SUDO} docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' || true
+
+echo "[INFO] Bootstrap finished at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "[INFO] Access Jenkins at port 8080, SonarQube at port 9000 (allow some minutes for Sonar to be healthy)."
