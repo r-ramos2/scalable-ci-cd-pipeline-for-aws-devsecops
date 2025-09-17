@@ -82,17 +82,17 @@ Single public VPC with one EC2 host running Jenkins, Docker, SonarQube, and Triv
 
 ```text
 .
-├── app/                   React frontend
-├── images/                Diagrams
-├── scripts/               Bootstrap script
-│   └── install_jenkins.sh loaded via Terraform file()
-├── terraform/             Terraform configs
+├── app/                   # React frontend
+├── images/                # Diagrams
+├── scripts/               # Bootstrap script
+│   └── install_jenkins.sh # loaded via Terraform file()
+├── terraform/             # Terraform configs
 │   ├── provider.tf
 │   ├── variables.tf
 │   ├── main.tf
 │   └── outputs.tf
-├── Jenkinsfile            Pipeline definition
-└── README.md              This file
+├── Jenkinsfile            # Pipeline definition
+└── README.md              # This file
 ```
 
 ---
