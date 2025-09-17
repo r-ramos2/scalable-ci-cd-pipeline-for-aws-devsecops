@@ -7,9 +7,9 @@ pipeline {
   }
 
   environment {
-    SCANNER_HOME      = tool 'sonar-scanner'
-    DOCKER_CREDENTIAL = 'dockerhub-creds'                        // Jenkins creds ID for Docker Hub
-    IMAGE_NAME        = 'mydockerhubuser/amazon:latest'           // replace mydockerhubuser with your Docker Hub username
+    SCANNER_HOME      = tool 'sonar-scanner'            // ensure this tool is configured in Jenkins Global Tools
+    DOCKER_CREDENTIAL = 'dockerhub-creds'               // Jenkins credentials ID for Docker Hub
+    IMAGE_REPO        = 'mydockerhubuser/amazon'        // replace mydockerhubuser
   }
 
   options {
@@ -20,15 +20,13 @@ pipeline {
 
   stages {
     stage('Cleanup') {
-      steps {
-        cleanWs()
-      }
+      steps { cleanWs() }
     }
 
     stage('Checkout') {
       steps {
-        git branch: 'main',                                        // or your default branch name
-            url: 'https://github.com/my-org/my-repo.git'           // replace with your GitHub org/repo
+        git branch: 'main',
+            url: 'https://github.com/my-org/my-repo.git' // update to your repo
       }
     }
 
@@ -57,6 +55,7 @@ pipeline {
 
     stage('Quality Gate') {
       steps {
+        // Requires SonarQube webhook configured to Jenkins or polling setup
         timeout(time: 5, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
@@ -66,15 +65,16 @@ pipeline {
     stage('Build & Test') {
       steps {
         dir('app') {
-          sh 'CI=true npm ci'
-          // run tests non-interactively; fail pipeline on failing tests
-          sh 'CI=true npm test -- --watchAll=false --reporters=default'
+          // Non-interactive tests; ensure CI=true so CRA behaves properly in CI
+          sh 'CI=true npm ci --prefer-offline --no-audit'
+          sh 'CI=true npm test -- --watchAll=false --reporters=default || (echo "Tests failed" && exit 1)'
         }
       }
     }
 
     stage('Trivy FS Scan') {
       steps {
+        // Do not fail pipeline on scan result; archive report for visibility
         sh 'trivy fs . --exit-code 1 --severity HIGH,CRITICAL > TRIVYFS.txt || true'
         archiveArtifacts artifacts: 'TRIVYFS.txt'
       }
@@ -83,43 +83,47 @@ pipeline {
     stage('Docker Build & Push') {
       steps {
         script {
-          def img = docker.build(env.IMAGE_NAME, './app')
+          def buildTag = "${env.BUILD_NUMBER ?: 'local'}"
+          def imageTag = "${env.IMAGE_REPO}:${buildTag}"
+          def imageLatest = "${env.IMAGE_REPO}:latest"
+          // Build image
+          def img = docker.build(imageTag, './app')
           docker.withRegistry('', env.DOCKER_CREDENTIAL) {
             img.push()
+            img.push('latest')
           }
+          // Expose tags as env for subsequent stages
+          env.IMAGE_FULL = imageTag
         }
       }
     }
 
     stage('Trivy Image Scan') {
       steps {
-        sh "trivy image ${env.IMAGE_NAME} --exit-code 1 --severity HIGH,CRITICAL > TRIVYIMAGE.txt || true"
+        // Scan pushed image; archive report. Do not hard-fail here if you want to preserve artifacts.
+        sh "trivy image ${env.IMAGE_FULL} --exit-code 1 --severity HIGH,CRITICAL > TRIVYIMAGE.txt || true"
         archiveArtifacts artifacts: 'TRIVYIMAGE.txt'
       }
     }
 
     stage('Deploy & Smoke Test') {
       steps {
+        // Deploy on the Jenkins host (assumes Docker present and ports free)
         sh "docker rm -f amazon || true"
-        // container listens on 80 inside image; map host 3000 to container 80
-        sh "docker run -d --name amazon -p 3000:80 ${env.IMAGE_NAME}"
+        sh "docker run -d --name amazon -p 3000:80 ${env.IMAGE_FULL}"
         sh 'sleep 10'
-        sh 'curl -f http://localhost:3000 || exit 1'
+        sh 'curl -f http://localhost:3000 || (echo "Smoke test failed" && exit 1)'
       }
     }
   }
 
   post {
-    success {
-      echo 'Pipeline succeeded!'
-    }
+    success { echo 'Pipeline succeeded!' }
     failure {
       mail to: 'team@example.com',
            subject: "Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
            body: "Please check Jenkins for details: ${env.BUILD_URL}"
     }
-    always {
-      cleanWs()
-    }
+    always { cleanWs() }
   }
 }
