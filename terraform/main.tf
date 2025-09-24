@@ -13,20 +13,18 @@ resource "random_id" "suffix" {
   byte_length = 4
 }
 
-# Register generated keypair in AWS
 resource "aws_key_pair" "deployer" {
   key_name   = "${var.key_name_prefix}-${random_id.suffix.hex}"
   public_key = tls_private_key.deployer.public_key_openssh
 }
 
-# Save private key locally (chmod 400)
 resource "local_file" "private_key_pem" {
   content         = tls_private_key.deployer.private_key_pem
   filename        = "${path.module}/deployer_key.pem"
   file_permission = "0400"
 }
 
-# 2. AMI Data Sources
+# 2. AMI Data Source
 data "aws_ami" "linux2" {
   most_recent = true
   owners      = [var.linux2_ami_owner]
@@ -63,7 +61,7 @@ resource "aws_route_table" "rt" {
   tags   = merge(local.common_tags, { Name = "${local.project_name}-rt" })
 }
 
-resource "aws_route" "default" {
+resource "aws_route" "default_route" {
   route_table_id         = aws_route_table.rt.id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.igw.id
@@ -74,21 +72,19 @@ resource "aws_route_table_association" "public_assoc" {
   route_table_id = aws_route_table.rt.id
 }
 
-# 4. Security Groups
+# 4. Security Group
 resource "aws_security_group" "jenkins_sg" {
   name        = "${local.project_name}-sg"
   description = "Allow SSH, HTTP, HTTPS, Jenkins, SonarQube, React App"
   vpc_id      = aws_vpc.lab.id
 
-  # SSH access for Jenkins management - restricted to your IP (var.my_ip)
   ingress {
     from_port   = var.ssh_port
     to_port     = var.ssh_port
     protocol    = "tcp"
-    cidr_blocks = [var.my_ip]
+    cidr_blocks = [var.allowed_cidr]
   }
 
-  # HTTP for React App
   ingress {
     from_port   = var.http_port
     to_port     = var.http_port
@@ -96,7 +92,6 @@ resource "aws_security_group" "jenkins_sg" {
     cidr_blocks = [var.allowed_cidr]
   }
 
-  # HTTPS for secure access
   ingress {
     from_port   = var.https_port
     to_port     = var.https_port
@@ -104,7 +99,6 @@ resource "aws_security_group" "jenkins_sg" {
     cidr_blocks = [var.allowed_cidr]
   }
 
-  # Jenkins Web UI
   ingress {
     from_port   = var.jenkins_port
     to_port     = var.jenkins_port
@@ -112,7 +106,6 @@ resource "aws_security_group" "jenkins_sg" {
     cidr_blocks = [var.allowed_cidr]
   }
 
-  # SonarQube UI
   ingress {
     from_port   = var.sonarqube_port
     to_port     = var.sonarqube_port
@@ -120,7 +113,6 @@ resource "aws_security_group" "jenkins_sg" {
     cidr_blocks = [var.allowed_cidr]
   }
 
-  # React App port
   ingress {
     from_port   = var.react_port
     to_port     = var.react_port
@@ -128,7 +120,6 @@ resource "aws_security_group" "jenkins_sg" {
     cidr_blocks = [var.allowed_cidr]
   }
 
-  # Allow all outbound traffic
   egress {
     from_port   = 0
     to_port     = 0
@@ -139,7 +130,7 @@ resource "aws_security_group" "jenkins_sg" {
   tags = merge(local.common_tags, { Name = "${local.project_name}-sg" })
 }
 
-# 5. EC2 Instance (Jenkins, Docker, SonarQube, Trivy)
+# 5. EC2 Instance
 resource "aws_instance" "jenkins" {
   ami                         = data.aws_ami.linux2.id
   instance_type               = var.instance_type
@@ -147,9 +138,7 @@ resource "aws_instance" "jenkins" {
   subnet_id                   = aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.jenkins_sg.id]
   associate_public_ip_address = true
-
-  # Bootstrap via external script
-  user_data = file("${path.module}/../scripts/install_jenkins.sh")
+  user_data                   = file("${path.module}/../scripts/install_jenkins.sh")
 
   root_block_device {
     volume_size = var.root_volume_size
