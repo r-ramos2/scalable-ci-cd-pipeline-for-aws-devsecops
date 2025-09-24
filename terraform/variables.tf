@@ -22,7 +22,7 @@ variable "public_subnet_cidr" {
   default     = "10.0.1.0/24"
 }
 variable "availability_zone" {
-  description = "AZ in which to create the public subnet"
+  description = "AZ for the public subnet"
   type        = string
   default     = "us-east-1a"
 }
