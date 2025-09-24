@@ -13,11 +13,13 @@ resource "random_id" "suffix" {
   byte_length = 4
 }
 
+# Register generated keypair in AWS
 resource "aws_key_pair" "deployer" {
   key_name   = "${var.key_name_prefix}-${random_id.suffix.hex}"
   public_key = tls_private_key.deployer.public_key_openssh
 }
 
+# Save private key locally (chmod 400)
 resource "local_file" "private_key_pem" {
   content         = tls_private_key.deployer.private_key_pem
   filename        = "${path.module}/deployer_key.pem"
