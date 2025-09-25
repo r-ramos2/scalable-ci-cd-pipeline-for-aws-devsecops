@@ -1,4 +1,4 @@
-# Terraform state
+# Terraform state and backup
 *.tfstate
 *.tfstate.*
 crash.log
@@ -12,10 +12,17 @@ terraform.tfvars
 *.key
 *.pub
 
-# Editor/OS
+# IDE / Editor
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
 .idea/
 .vscode/
+
+# OS generated files
+*.bak
+*.tmp
+
+# Optional: Terraform plan files
+*.tfplan
