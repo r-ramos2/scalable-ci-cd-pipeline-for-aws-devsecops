@@ -30,10 +30,16 @@ variable "availability_zone" {
   default     = "us-east-1a"
 }
 
-variable "my_ip" {
-  description = "Your IP CIDR block for SSH access (override this)"
+# Allowed CIDR for access (replace with your public IP /32)
+variable "allowed_cidr" {
+  description = "CIDR block permitted to reach instances (e.g. 203.0.113.25/32)"
   type        = string
-  default     = "203.0.113.0/32"
+  default     = "203.0.113.25/32" # OK for demos; consider removing default in production
+
+  validation {
+    condition     = can(cidrhost(var.allowed_cidr, 0))
+    error_message = "allowed_cidr must be a valid IPv4 CIDR block, e.g. 203.0.113.25/32"
+  }
 }
 
 # AMI Lookup
@@ -47,13 +53,6 @@ variable "linux2_ami_name_filter" {
   description = "Filter to find the latest Amazon Linux 2 AMI"
   type        = string
   default     = "amzn2-ami-hvm-*-gp2"
-}
-
-# Security
-variable "allowed_cidr" {
-  description = "CIDR block permitted to reach application ports"
-  type        = string
-  default     = "203.0.113.25/32"
 }
 
 # Ports
