@@ -144,5 +144,16 @@ resource "aws_instance" "jenkins" {
     volume_size = var.root_volume_size
   }
 
+  # Spot instance configuration
+  instance_market_options {
+    market_type = "spot"
+
+    spot_options {
+      allocation_strategy            = "capacity-optimized"
+      instance_interruption_behavior = "terminate"
+      # max_price = null  # optional: leave blank to pay current Spot price
+    }
+  }
+
   tags = merge(local.common_tags, { Name = "${local.project_name}-jenkins" })
 }
