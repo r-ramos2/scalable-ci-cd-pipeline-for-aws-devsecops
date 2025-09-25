@@ -44,13 +44,13 @@ variable "allowed_cidr" {
 
 # AMI Lookup
 variable "linux2_ami_owner" {
-  description = "Owner ID for the Amazon Linux 2 AMI"
+  description = "Owner ID for Amazon Linux 2 AMI"
   type        = string
   default     = "amazon"
 }
 
 variable "linux2_ami_name_filter" {
-  description = "Filter to find the latest Amazon Linux 2 AMI"
+  description = "Filter for Amazon Linux 2 AMI"
   type        = string
   default     = "amzn2-ami-hvm-*-gp2"
 }
