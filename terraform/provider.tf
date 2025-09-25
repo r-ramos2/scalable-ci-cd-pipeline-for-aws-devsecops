@@ -7,6 +7,7 @@ terraform {
     local  = { source = "hashicorp/local" }
   }
 }
+
 provider "aws" {
   region = var.region
 }
