@@ -34,7 +34,6 @@ variable "availability_zone" {
 variable "allowed_cidr" {
   description = "CIDR block permitted to reach instances (e.g. 203.0.113.25/32)"
   type        = string
-  default     = "203.0.113.25/32" # OK for demos; consider removing default in production
 
   validation {
     condition     = can(cidrhost(var.allowed_cidr, 0))
