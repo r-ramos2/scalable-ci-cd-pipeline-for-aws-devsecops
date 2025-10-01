@@ -101,8 +101,8 @@ terraform apply plan.tfplan
 ```
 
 Outputs: 
-- SSH private key location
-- Public IPs for all instances
+* SSH private key location
+* Public IPs for all instances
 
 Save these outputs:
 
@@ -131,11 +131,11 @@ trivy --version
 Bootstrap logs: `/var/log/bootstrap.log`
 
 The bootstrap script automatically installs:
-- Java 17 (Amazon Corretto)
-- Docker Engine with persistent volumes
-- Jenkins with systemd service
-- SonarQube container with data persistence
-- Trivy CLI scanner
+* Java 17 (Amazon Corretto)
+* Docker Engine with persistent volumes
+* Jenkins with systemd service
+* SonarQube container with data persistence
+* Trivy CLI scanner
 
 ---
 
@@ -144,11 +144,11 @@ The bootstrap script automatically installs:
 1. Open Jenkins: `http://<instance_public_ip>:8080`
 2. Get initial password: `sudo cat /var/lib/jenkins/secrets/initialAdminPassword`
 3. Install plugins:
-   - Docker Pipeline
-   - SonarQube Scanner
-   - OWASP Dependency-Check
-   - Pipeline Utility Steps
-   - AnsiColor
+   * Docker Pipeline
+   * SonarQube Scanner
+   * OWASP Dependency-Check
+   * Pipeline Utility Steps
+   * AnsiColor
 
 4. Configure Global Tools (Manage Jenkins → Tools):
    * JDK 17 → name: `jdk17`
@@ -158,23 +158,23 @@ The bootstrap script automatically installs:
 
 5. Add Credentials (Manage Jenkins → Credentials):
    * **Docker Hub:**
-     - Kind: Username with password
-     - ID: `dockerhub-creds`
-     - Username: Your Docker Hub username
-     - Password: Your Docker Hub access token
+     * Kind: Username with password
+     * ID: `dockerhub-creds`
+     * Username: Your Docker Hub username
+     * Password: Your Docker Hub access token
    
    * **SonarQube Token:**
-     - Kind: Secret text
-     - ID: `sonar-server`
-     - Secret: (Generate in SonarQube UI)
+     * Kind: Secret text
+     * ID: `sonar-server`
+     * Secret: (Generate in SonarQube UI)
 
 6. Configure SonarQube webhook:
-   - Access SonarQube: `http://<instance_public_ip>:9000`
-   - Login: `admin/admin` (change password on first login)
-   - Create token: My Account → Security → Generate Token
-   - Add webhook: Administration → Webhooks
-     - Name: `Jenkins`
-     - URL: `http://<instance_public_ip>:8080/sonarqube-webhook/`
+   * Access SonarQube: `http://<instance_public_ip>:9000`
+   * Login: `admin/admin` (change password on first login)
+   * Create token: My Account → Security → Generate Token
+   * Add webhook: Administration → Webhooks
+     * Name: `Jenkins`
+     * URL: `http://<instance_public_ip>:8080/sonarqube-webhook/`
 
 ---
 
@@ -182,14 +182,14 @@ The bootstrap script automatically installs:
 
 1. Create Pipeline job: New Item → Pipeline → Name: `amazon-frontend-pipeline`
 2. Pipeline section:
-   - Definition: Pipeline script from SCM
-   - SCM: Git
-   - Repository URL: `https://github.com/r-ramos2/scalable-ci-cd-pipeline-for-aws-devsecops.git`
-   - Branch: `*/main`
-   - Script Path: `Jenkinsfile`
+   * Definition: Pipeline script from SCM
+   * SCM: Git
+   * Repository URL: `https://github.com/r-ramos2/scalable-ci-cd-pipeline-for-aws-devsecops.git`
+   * Branch: `*/main`
+   * Script Path: `Jenkinsfile`
 
 **Before running, update Jenkinsfile:**
-- Line 13: `IMAGE_REPO = 'YOUR_DOCKERHUB_USERNAME/amazon'`
+* Line 13: `IMAGE_REPO = 'YOUR_DOCKERHUB_USERNAME/amazon'`
 
 ---
 
@@ -204,9 +204,9 @@ docker run -d -p 3000:80 amazon-frontend
 ```
 
 The app uses:
-- Multi-stage Docker build (node:16 → nginx:alpine)
-- `.dockerignore` to optimize build context
-- Health checks for container monitoring
+* Multi-stage Docker build (node:16 → nginx:alpine)
+* `.dockerignore` to optimize build context
+* Health checks for container monitoring
 
 ---
 
@@ -248,32 +248,32 @@ docker volume prune -f
 ## Best Practices
 
 **Infrastructure Management:**
-- Use remote state (S3 + DynamoDB) for team collaboration
-- Tag all resources consistently for cost tracking
-- Implement least-privilege IAM roles for automation
-- Enable CloudTrail for audit logging
-- Set up AWS billing alerts
+* Use remote state (S3 + DynamoDB) for collaboration
+* Tag all resources consistently for cost tracking
+* Implement least-privilege IAM roles for automation
+* Enable CloudTrail for audit logging
+* Set up AWS billing alerts
 
 **Security Hygiene:**
-- Rotate SSH keys every 90 days
-- Change default passwords immediately
-- Restrict security group ingress to your current IP only
-- Never use 0.0.0.0/0 for homelab security groups
-- Enable MFA on AWS root and IAM accounts
+* Rotate SSH keys every 90 days
+* Change default passwords immediately
+* Restrict security group ingress to your current IP only
+* Never use 0.0.0.0/0 for homelab security groups
+* Enable MFA on AWS root and IAM accounts
 
 **Cost Optimization:**
-- Run `terraform destroy` when not actively using the lab
-- Use t3.micro/t3.small for cost-sensitive testing
-- Consider spot instances for significant savings (commented in main.tf)
-- Schedule automated shutdown during non-business hours
-- Monitor costs with AWS Cost Explorer
+* Run `terraform destroy` when not actively using the lab
+* Use t3.micro/t3.small for cost-sensitive testing
+* Consider spot instances for significant savings (commented in main.tf)
+* Schedule automated shutdown during non-business hours
+* Monitor costs with AWS Cost Explorer
 
 **Operational Excellence:**
-- Document all custom configurations
-- Version control all infrastructure code
-- Test disaster recovery procedures
-- Maintain separate environments (dev/prod)
-- Implement automated backups
+* Document all custom configurations
+* Version control all infrastructure code
+* Test disaster recovery procedures
+* Maintain separate environments (dev/prod)
+* Implement automated backups
 
 ---
 
