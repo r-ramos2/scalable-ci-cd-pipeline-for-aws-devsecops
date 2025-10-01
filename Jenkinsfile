@@ -9,9 +9,11 @@ pipeline {
   environment {
     SCANNER_HOME      = tool 'sonar-scanner'
     DOCKER_CREDENTIAL = 'dockerhub-creds'
-    IMAGE_REPO        = 'mydockerhubuser/amazon'  // TODO: Replace with your Docker Hub username
-    GIT_REPO_URL      = 'https://github.com/r-ramos2/scalable-ci-cd-pipeline-for-aws-devsecops.git'
-    GIT_BRANCH        = 'main'
+    // Configure via Jenkins environment variables or credentials
+    DOCKERHUB_USER    = credentials('dockerhub-username') // Add this credential in Jenkins
+    IMAGE_REPO        = "${DOCKERHUB_USER}/amazon"
+    GIT_REPO_URL      = scm.userRemoteConfigs[0].url
+    GIT_BRANCH        = scm.branches[0].name
   }
 
   options {
@@ -30,8 +32,7 @@ pipeline {
 
     stage('Checkout') {
       steps {
-        git branch: "${env.GIT_BRANCH}",
-            url: "${env.GIT_REPO_URL}"
+        checkout scm
         sh 'git rev-parse --short HEAD > .git/commit-id'
         script {
           env.GIT_COMMIT_SHORT = readFile('.git/commit-id').trim()
