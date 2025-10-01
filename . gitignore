@@ -1,0 +1,132 @@
+# ============================================
+# Terraform
+# ============================================
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfplan
+*.auto.tfvars
+*.auto.tfvars.json
+!terraform.tfvars.example
+terraform.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# ============================================
+# Sensitive / Secret Files
+# ============================================
+*.pem
+*.key
+*.pub
+*.p12
+*.pfx
+secrets/
+secrets.yml
+credentials.json
+.env
+.env.local
+.env.production
+.env.local*.old
+*.orig
+
+# ============================================
+# Node.js / NPM / Yarn
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+build/
+dist/
+coverage/
+
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# ============================================
+# Ansible
+# ============================================
+*.retry
+.ansible/
+
+# ============================================
+# Logs and Lab Outputs
+# ============================================
+*.log
+*.log.*
+logs/
+lab_info.txt
+
+# ============================================
+# IDEs / Editors
+# ============================================
+.idea/
+.vscode/
+.vs/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*.swn
+*~
+
+# ============================================
+# OS Generated Files
+# ============================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.Trash-*
+.nfs*
+.directory
+.AppleDouble
+.LSOverride
+._*
+
+# ============================================
+# Backup and Temp Files
+# ============================================
+*.bak
+*.tmp
+*.temp
+*.backup
+*.orig
+
+# ============================================
+# Compressed Files
+# ============================================
+*.zip
+*.tar.gz
+*.rar
+
+# ============================================
+# Security Scan Reports
+# ============================================
+TRIVYFS.txt
+TRIVYIMAGE.txt
+dependency-check-report.html
+dependency-check-report.xml
+
+# ============================================
+# Documentation Builds (e.g., MkDocs)
+# ============================================
+site/
