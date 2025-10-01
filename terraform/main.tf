@@ -203,7 +203,7 @@ resource "aws_instance" "jenkins" {
     encrypted             = true
 
     tags = merge(local.common_tags, {
-      Name = "${local.project_name}-root-volume"
+      Name = "${local.project_name}-jenkins-root-volume"
     })
   }
 
