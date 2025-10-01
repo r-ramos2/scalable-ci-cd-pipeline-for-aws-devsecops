@@ -1,6 +1,6 @@
 # Scalable CI/CD Pipeline for AWS DevSecOps
 
-[![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.5.0-blue)](https://www.terraform.io/) [![Jenkins](https://img.shields.io/badge/Jenkins-LTS-blue)](https://www.jenkins.io/) [![Docker](https://img.shields.io/badge/Docker-%3E%3D20.10-blue)](https://www.docker.com/) [![SonarQube](https://img.shields.io/badge/SonarQube-LTS-blue)](https://www.sonarqube.org/) [![Trivy](https://img.shields.io/badge/Trivy-%3E%3D0.46-blue)](https://github.com/aquasecurity/trivy)
+[![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.5.0-blue)](https://www.terraform.io/) [![AWS](https://img.shields.io/badge/AWS-Cloud-orange)](https://aws.amazon.com/) [![Jenkins](https://img.shields.io/badge/Jenkins-LTS-blue)](https://www.jenkins.io/) [![Docker](https://img.shields.io/badge/Docker-%3E%3D20.10-blue)](https://www.docker.com/) [![SonarQube](https://img.shields.io/badge/SonarQube-LTS-blue)](https://www.sonarqube.org/) [![Trivy](https://img.shields.io/badge/Trivy-%3E%3D0.46-blue)](https://github.com/aquasecurity/trivy)
 
 AWS DevSecOps CI/CD pipeline deploying a React frontend on EC2 with Terraform, Jenkins, Docker, SonarQube, Trivy, and OWASP Dependency-Check.
 
@@ -64,16 +64,21 @@ git clone https://github.com/r-ramos2/scalable-ci-cd-pipeline-for-aws-devsecops.
 cd scalable-ci-cd-pipeline-for-aws-devsecops/terraform
 ```
 
-### 2. Configure variables & keypair
+### 2. Configure variables & authentication
 
-Terraform auto-generates an RSA keypair. 
+**Important:** Terraform auto-generates an RSA keypair and saves it as `deployer_key.pem`. Back up any existing file with this name before proceeding.
 
-**Important:** Terraform creates `terraform/deployer_key.pem` and may overwrite an existing file with that name. Back up any existing key.
+Create your configuration file:
 
-Edit `terraform.tfvars` to set your public IP:
+```bash
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Edit `terraform.tfvars` and set your public IP:
 
 ```hcl
-allowed_cidr  = "203.0.113.25/32"  # REPLACE with YOUR_PUBLIC_IP/32
+# Required: Your current public IP (find with: curl ifconfig.me)
+allowed_cidr = "203.0.113.25/32"  # REPLACE with YOUR_PUBLIC_IP/32
 instance_type = "t3.large"
 ```
 
@@ -82,33 +87,48 @@ instance_type = "t3.large"
 ### 3. Provision infrastructure
 
 ```bash
+# Initialize Terraform and download providers
 terraform init
+
+# Validate configuration syntax
 terraform validate
-terraform plan -out=plan.tf
-terraform apply plan.tf
+
+# Preview infrastructure changes
+terraform plan -out=plan.tfplan
+
+# Apply the plan (creates AWS resources)
+terraform apply plan.tfplan
 ```
 
-Outputs: `deployer_key.pem` (sensitive), `instance_public_ip`, `jenkins_url`, `sonarqube_url`, `react_app_url`
+Outputs: 
+- SSH private key location
+- Public IPs for all instances
+
+Save these outputs:
+
+```bash
+terraform output > lab_info.txt
+```
 
 ---
 
 ## Instance Configuration
 
-Connect:
+**Connect via SSH:**
 
 ```bash
 ssh -i ./deployer_key.pem ec2-user@$(terraform output -raw instance_public_ip)
 ```
 
-Bootstrap logs: `/var/log/bootstrap.log`
-
-Verify services:
+**Verification:**
 
 ```bash
 sudo systemctl status jenkins
 docker ps
 trivy --version
 ```
+
+Bootstrap logs: `/var/log/bootstrap.log`
 
 The bootstrap script automatically installs:
 - Java 17 (Amazon Corretto)
@@ -192,12 +212,30 @@ The app uses:
 
 ## Cleanup
 
+**Destroy all AWS resources:**
+
 ```bash
 cd terraform
 terraform destroy -auto-approve
 ```
 
-Also remove Docker containers/volumes on EC2:
+**Verify deletion:**
+
+```bash
+# Check for remaining resources
+aws ec2 describe-instances --filters "Name=tag:Project,Values=aws-devsecops-homelab"
+
+# Check for remaining volumes
+aws ec2 describe-volumes --filters "Name=tag:Project,Values=aws-devsecops-homelab"
+```
+
+**Important:** The `deployer_key.pem` file remains on disk after `terraform destroy`. Delete manually if no longer needed:
+
+```bash
+rm -f ./deployer_key.pem
+```
+
+**Remove Docker containers/volumes on EC2:**
 
 ```bash
 ssh -i ./deployer_key.pem ec2-user@<instance_ip>
@@ -209,18 +247,39 @@ docker volume prune -f
 
 ## Best Practices
 
-* Use least-privilege IAM for Terraform and resources
-* Restrict SSH ingress to your IP (`/32`)
-* Use remote state (S3 + DynamoDB) for team collaboration
-* Enable CloudTrail for audit logging
-* Set AWS billing alerts
-* Rotate SSH keys regularly
+**Infrastructure Management:**
+- Use remote state (S3 + DynamoDB) for team collaboration
+- Tag all resources consistently for cost tracking
+- Implement least-privilege IAM roles for automation
+- Enable CloudTrail for audit logging
+- Set up AWS billing alerts
+
+**Security Hygiene:**
+- Rotate SSH keys every 90 days
+- Change default passwords immediately
+- Restrict security group ingress to your current IP only
+- Never use 0.0.0.0/0 for homelab security groups
+- Enable MFA on AWS root and IAM accounts
+
+**Cost Optimization:**
+- Run `terraform destroy` when not actively using the lab
+- Use t3.micro/t3.small for cost-sensitive testing
+- Consider spot instances for significant savings (commented in main.tf)
+- Schedule automated shutdown during non-business hours
+- Monitor costs with AWS Cost Explorer
+
+**Operational Excellence:**
+- Document all custom configurations
+- Version control all infrastructure code
+- Test disaster recovery procedures
+- Maintain separate environments (dev/prod)
+- Implement automated backups
 
 ---
 
 ## Security Considerations
 
-This is a **DevSecOps homelab** intentionally simplified to run on a single EC2 instance with a public IP for demonstration. It demonstrates CI/CD with security tooling integration (SonarQube, Dependency-Check, Trivy) while keeping setup reproducible.
+This homelab intentionally simplified to run on a single EC2 instance with a public IP for demonstration. It demonstrates CI/CD with security tooling integration (SonarQube, Dependency-Check, Trivy) while keeping setup reproducible.
 
 **For production, apply these hardening steps:**
 
