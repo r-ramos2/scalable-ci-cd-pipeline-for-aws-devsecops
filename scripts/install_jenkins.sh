@@ -28,8 +28,24 @@ ${SUDO} yum install -y git wget unzip curl ca-certificates jq
 # 2. Install Java 17 (Amazon Corretto)
 # ============================================
 echo "[INFO] Installing Java 17 (Amazon Corretto)..."
-${SUDO} amazon-linux-extras enable corretto17 2>/dev/null || true
-${SUDO} yum install -y java-17-amazon-corretto-devel
+
+# Try amazon-linux-extras first (AL2)
+if command -v amazon-linux-extras &> /dev/null; then
+  ${SUDO} amazon-linux-extras enable corretto17 2>/dev/null || true
+  ${SUDO} yum install -y java-17-amazon-corretto-devel
+else
+  # Fallback: Direct RPM installation for AL2023 or if extras not available
+  echo "[INFO] amazon-linux-extras not found, using direct RPM installation..."
+  ${SUDO} rpm --import https://yum.corretto.aws/corretto.key
+  ${SUDO} wget -O /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo
+  ${SUDO} yum install -y java-17-amazon-corretto-devel
+fi
+
+# Verify installation
+if ! command -v java &> /dev/null; then
+  echo "[ERROR] Java installation failed!"
+  exit 1
+fi
 
 echo "[INFO] Java version:"
 java -version
@@ -39,7 +55,7 @@ java -version
 # ============================================
 echo "[INFO] Installing Docker..."
 if ! command -v docker &> /dev/null; then
-  if ${SUDO} amazon-linux-extras list | grep -q docker; then
+  if ${SUDO} amazon-linux-extras list 2>/dev/null | grep -q docker; then
     ${SUDO} amazon-linux-extras install docker -y
   else
     ${SUDO} yum install -y docker
@@ -56,6 +72,12 @@ for user in ec2-user jenkins; do
     echo "[INFO] Added $user to docker group"
   fi
 done
+
+# Verify Docker is running
+if ! ${SUDO} docker ps &> /dev/null; then
+  echo "[ERROR] Docker installation failed or not running!"
+  exit 1
+fi
 
 echo "[INFO] Docker version:"
 docker --version
@@ -77,7 +99,17 @@ ${SUDO} systemctl enable jenkins
 ${SUDO} systemctl start jenkins
 
 echo "[INFO] Waiting for Jenkins to create home directory..."
-sleep 5
+sleep 10
+
+# Wait for Jenkins to be fully started (check for initial password file)
+for i in {1..30}; do
+  if [ -f /var/lib/jenkins/secrets/initialAdminPassword ]; then
+    echo "[INFO] Jenkins has started successfully"
+    break
+  fi
+  echo "[INFO] Waiting for Jenkins to initialize (attempt $i/30)..."
+  sleep 5
+done
 
 # ============================================
 # 5. Deploy SonarQube container with volumes
@@ -96,7 +128,11 @@ if ${SUDO} docker ps -a --format '{{.Names}}' | grep -q '^sonarqube$'; then
 fi
 
 # Pull latest LTS image
-${SUDO} docker pull sonarqube:lts-community
+echo "[INFO] Pulling SonarQube image..."
+if ! ${SUDO} docker pull sonarqube:lts-community; then
+  echo "[ERROR] Failed to pull SonarQube image. Check internet connectivity."
+  exit 1
+fi
 
 # Run SonarQube with volume mounts
 ${SUDO} docker run -d \
@@ -116,9 +152,20 @@ echo "[INFO] SonarQube container started (allow 2-3 minutes for initialization)"
 # ============================================
 echo "[INFO] Installing Trivy..."
 if ! command -v trivy &> /dev/null; then
-  curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | ${SUDO} sh -s -- -b /usr/local/bin
+  TRIVY_INSTALL_SCRIPT="/tmp/trivy-install.sh"
+  
+  # Download install script
+  if ! curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh -o "${TRIVY_INSTALL_SCRIPT}"; then
+    echo "[ERROR] Failed to download Trivy install script"
+    exit 1
+  fi
+  
+  # Run install script
+  ${SUDO} sh "${TRIVY_INSTALL_SCRIPT}" -b /usr/local/bin
+  rm -f "${TRIVY_INSTALL_SCRIPT}"
 fi
 
+# Verify Trivy installation
 if ! command -v trivy &> /dev/null; then
   echo "[ERROR] Trivy installation failed"
   exit 1
@@ -147,6 +194,10 @@ fi
 echo "[INFO] Restarting Jenkins to apply group membership and PATH changes..."
 ${SUDO} systemctl daemon-reload
 ${SUDO} systemctl restart jenkins
+
+# Wait for Jenkins to be ready after restart
+echo "[INFO] Waiting for Jenkins to be ready after restart..."
+sleep 10
 
 # ============================================
 # 9. Verification
@@ -188,7 +239,8 @@ echo "📋 Next Steps:"
 echo "  1. Access Jenkins at: http://<instance-ip>:8080"
 echo "  2. Get initial admin password: sudo cat /var/lib/jenkins/secrets/initialAdminPassword"
 echo "  3. Access SonarQube at: http://<instance-ip>:9000 (default credentials: admin/admin)"
-echo "  4. Wait 2-3 minutes for SonarQube to fully initialize"
+echo "  4. IMPORTANT: Change SonarQube admin password immediately after first login!"
+echo "  5. Wait 2-3 minutes for SonarQube to fully initialize"
 echo ""
 echo "⚠️  IMPORTANT: Log out and log back in for Docker group membership to take effect"
 echo "=========================================="
