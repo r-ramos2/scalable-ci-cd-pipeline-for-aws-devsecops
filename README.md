@@ -279,12 +279,12 @@ docker volume prune -f
 
 ## Security Considerations
 
-This homelab intentionally simplified to run on a single EC2 instance with a public IP for demonstration. It demonstrates CI/CD with security tooling integration (SonarQube, Dependency-Check, Trivy) while keeping setup reproducible. It is intended for controlled, educational testing rather than production use. Never expose production systems without applying the hardening steps below.
+This homelab uses a single public subnet for simplicity and cost efficiency. It demonstrates CI/CD with security tooling integration (SonarQube, Dependency-Check, Trivy) while keeping setup reproducible. It is intended for controlled, educational testing rather than production use. Never expose production systems without applying the hardening steps below.
 
 **For production, apply these hardening steps:**
 
-* Move Jenkins and SonarQube to **private subnets** behind a bastion host or VPN
-* Front the app with an **ALB** using TLS via ACM
+* Move Jenkins and SonarQube to private subnets behind a bastion host or VPN
+* Front the app with an ALB using TLS via ACM
 * Integrate AWS security services: GuardDuty, Inspector, WAF, CloudTrail, Config
 * Use IAM roles and least privilege
 * Separate services and scale out for resilience
