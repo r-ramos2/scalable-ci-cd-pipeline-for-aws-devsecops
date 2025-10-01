@@ -279,7 +279,7 @@ docker volume prune -f
 
 ## Security Considerations
 
-This homelab intentionally simplified to run on a single EC2 instance with a public IP for demonstration. It demonstrates CI/CD with security tooling integration (SonarQube, Dependency-Check, Trivy) while keeping setup reproducible.
+This homelab intentionally simplified to run on a single EC2 instance with a public IP for demonstration. It demonstrates CI/CD with security tooling integration (SonarQube, Dependency-Check, Trivy) while keeping setup reproducible. It is intended for controlled, educational testing rather than production use. Never expose production systems without applying the hardening steps below.
 
 **For production, apply these hardening steps:**
 
