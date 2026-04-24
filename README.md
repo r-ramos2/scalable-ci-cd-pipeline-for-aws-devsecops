@@ -37,7 +37,7 @@ ssh -i ./deployer_key.pem ec2-user@$(terraform output -raw instance_public_ip)
 
 ## Table of Contents
 
-1. [Topology](#topology)
+1. [Architecture](#architecture)
 2. [Architecture Overview](#architecture-overview)
 3. [Prerequisites](#prerequisites)
 4. [Repository Structure](#repository-structure)
@@ -54,9 +54,9 @@ ssh -i ./deployer_key.pem ec2-user@$(terraform output -raw instance_public_ip)
 
 ---
 
-## Topology
+## Architecture
 
-![Architecture Diagram](images/architecture-diagram.png)
+![Architecture Diagram](images/architecture-diagram.svg)
 Single public VPC with one EC2 host running Jenkins, Docker, SonarQube, and Trivy; secured by a dedicated security group.
 
 ---
