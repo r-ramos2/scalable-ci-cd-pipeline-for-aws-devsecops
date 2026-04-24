@@ -26,3 +26,9 @@ output "react_app_url" {
   description = "React App access URL"
   value       = "http://${aws_instance.jenkins.public_ip}:${var.react_port}"
 }
+
+# Logging
+output "vpc_flow_log_group_name" {
+  description = "CloudWatch Logs group for VPC Flow Logs"
+  value       = aws_cloudwatch_log_group.vpc_flow_logs.name
+}
