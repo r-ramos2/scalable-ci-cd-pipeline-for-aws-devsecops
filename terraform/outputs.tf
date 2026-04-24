@@ -1,7 +1,7 @@
 # SSH Key
-output "private_key_path" {
-  description = "Path to the generated SSH private key"
-  value       = local_file.private_key_pem.filename
+output "private_key_pem" {
+  description = "Private key PEM — pipe to a file: terraform output -raw private_key_pem > deployer_key.pem && chmod 400 deployer_key.pem"
+  value       = tls_private_key.deployer.private_key_pem
   sensitive   = true
 }
 
