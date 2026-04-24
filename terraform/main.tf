@@ -28,12 +28,6 @@ resource "aws_key_pair" "deployer" {
   })
 }
 
-resource "local_file" "private_key_pem" {
-  content         = tls_private_key.deployer.private_key_pem
-  filename        = "${path.module}/deployer_key.pem"
-  file_permission = "0400"
-}
-
 # ============================================
 # 2. AMI Data Source (Amazon Linux 2)
 # ============================================
