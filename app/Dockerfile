@@ -1,5 +1,5 @@
 # Build stage: compile React app
-FROM node:16 AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --prefer-offline --no-audit
