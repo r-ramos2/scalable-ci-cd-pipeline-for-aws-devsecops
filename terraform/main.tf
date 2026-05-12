@@ -220,7 +220,13 @@ resource "aws_iam_role_policy" "vpc_flow_logs" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogGroups", "logs:DescribeLogStreams"]
+        Action   = [
+          "logs:CreateLogGroup", 
+          "logs:CreateLogStream", 
+          "logs:PutLogEvents", 
+          "logs:DescribeLogGroups", 
+          "logs:DescribeLogStreams"
+        ]
         Resource = "*"
       }
     ]
