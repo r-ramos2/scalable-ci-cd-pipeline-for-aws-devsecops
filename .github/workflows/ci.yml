@@ -12,9 +12,9 @@ jobs:
       run:
         working-directory: terraform
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2        # supports Node 24
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v3.1.2  # supports Node 24
         with:
           terraform_version: 1.5.7
 
