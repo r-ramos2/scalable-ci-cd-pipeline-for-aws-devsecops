@@ -90,7 +90,7 @@ JENKINS_REPO="/etc/yum.repos.d/jenkins.repo"
 
 if [ ! -f "${JENKINS_REPO}" ]; then
   ${SUDO} wget -q -O "${JENKINS_REPO}" https://pkg.jenkins.io/redhat-stable/jenkins.repo
-  ${SUDO} rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+  ${SUDO} rpm --import https://pkg.jenkins.io/rpm/jenkins.io-2026.key
 fi
 
 ${SUDO} yum install -y jenkins
