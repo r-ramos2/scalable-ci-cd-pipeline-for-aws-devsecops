@@ -64,6 +64,16 @@ resource "aws_vpc" "lab" {
   })
 }
 
+# Lock down the VPC default security group — it allows all traffic by default,
+# which is a CIS Benchmark finding. No rules = deny all.
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.lab.id
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-default-sg-locked"
+  })
+}
+
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.lab.id
   cidr_block              = var.public_subnet_cidr
@@ -183,7 +193,7 @@ resource "aws_security_group" "jenkins_sg" {
 # ============================================
 resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
   name              = "/aws/vpc-flow-logs/${aws_vpc.lab.id}"
-  retention_in_days = 14
+  retention_in_days = 365
 
   tags = merge(local.common_tags, {
     Name = "${local.project_name}-vpc-flow-logs"
@@ -253,7 +263,7 @@ resource "aws_flow_log" "vpc" {
 # ============================================
 resource "aws_cloudwatch_log_group" "jenkins" {
   name              = "/aws/ec2/${local.project_name}/jenkins"
-  retention_in_days = 14
+  retention_in_days = 365
 
   tags = merge(local.common_tags, {
     Name = "${local.project_name}-jenkins-logs"
@@ -354,6 +364,8 @@ resource "aws_instance" "jenkins" {
   key_name                    = aws_key_pair.deployer.key_name
   iam_instance_profile        = aws_iam_instance_profile.jenkins.name
   user_data                   = file("${path.module}/../scripts/install_jenkins.sh")
+  monitoring                  = true
+  ebs_optimized               = true
 
   # Replace the instance automatically when user_data changes.
   # Without this, modifying the bootstrap script has no effect on a running instance.
