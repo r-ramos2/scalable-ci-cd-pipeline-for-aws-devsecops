@@ -12,8 +12,6 @@ pipeline {
     // Configure via Jenkins environment variables or credentials
     DOCKERHUB_USER    = credentials('dockerhub-username') // Add this credential in Jenkins
     IMAGE_REPO        = "${DOCKERHUB_USER}/amazon"
-    GIT_REPO_URL      = scm.userRemoteConfigs[0].url
-    GIT_BRANCH        = scm.branches[0].name
   }
 
   options {
@@ -89,7 +87,10 @@ pipeline {
     stage('Install Dependencies') {
       steps {
         dir('app') {
-          sh 'npm ci --prefer-offline --no-audit'
+          // --prefer-offline avoids repeat downloads on cache hits.
+          // npm audit runs implicitly and surfaces any known CVEs before
+          // OWASP Dependency Check runs its more comprehensive scan.
+          sh 'npm ci --prefer-offline'
         }
       }
     }
@@ -194,12 +195,14 @@ pipeline {
           // Stop and remove existing container if running
           sh 'docker rm -f amazon-app || true'
           
-          // Deploy new container
+          // Deploy new container.
+          // The nginx runtime listens on 8080 (non-privileged port) inside the
+          // container; port 3000 on the host forwards to it.
           sh """
             docker run -d \
               --name amazon-app \
               --restart unless-stopped \
-              -p 3000:80 \
+              -p 3000:8080 \
               ${env.IMAGE_FULL}
           """
           
