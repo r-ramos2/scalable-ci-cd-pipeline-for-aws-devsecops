@@ -1,0 +1,23 @@
+# Dependencies and build output (rebuilt inside Docker via npm ci)
+node_modules/
+build/
+npm-debug.log*
+
+# Version control
+.git/
+.gitignore
+
+# Environment files (must not leak into image)
+.env
+.env.*
+
+# Editor and OS
+.DS_Store
+.vscode/
+*.swp
+*.swo
+
+# CI artifacts
+coverage/
+TRIVYFS.txt
+TRIVYIMAGE.txt
