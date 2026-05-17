@@ -45,12 +45,16 @@ variable "ami_name_filter" {
 
 # Allowed CIDR for access (replace with your public IP /32)
 variable "allowed_cidr" {
-  description = "CIDR block permitted to reach instances (e.g. 203.0.113.25/32). Must not be 0.0.0.0/0."
+  description = "CIDR block permitted to reach instances. Must be a single /32 host address (e.g. 203.0.113.25/32). Broad ranges are rejected to prevent accidental exposure."
   type        = string
 
   validation {
-    condition     = can(cidrhost(var.allowed_cidr, 0)) && var.allowed_cidr != "0.0.0.0/0"
-    error_message = "allowed_cidr must be a valid IPv4 CIDR block and must not be 0.0.0.0/0. Use your public IP: e.g. 203.0.113.25/32"
+    condition = (
+      can(cidrhost(var.allowed_cidr, 0)) &&
+      var.allowed_cidr != "0.0.0.0/0" &&
+      split("/", var.allowed_cidr)[1] == "32"
+    )
+    error_message = "allowed_cidr must be a single /32 IPv4 host address (e.g. 203.0.113.25/32). Broader ranges are not permitted. Find your IP at https://checkip.amazonaws.com."
   }
 }
 
