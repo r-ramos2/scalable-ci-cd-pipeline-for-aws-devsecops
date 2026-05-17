@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
@@ -12,8 +15,8 @@ jobs:
       run:
         working-directory: terraform
     steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.7
       - name: Terraform format check
@@ -26,7 +29,7 @@ jobs:
   scripts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v4
       - name: Shellcheck
         run: |
           sudo apt-get install -y shellcheck
