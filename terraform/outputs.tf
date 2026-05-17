@@ -32,3 +32,8 @@ output "vpc_flow_log_group_name" {
   description = "CloudWatch Logs group for VPC Flow Logs"
   value       = aws_cloudwatch_log_group.vpc_flow_logs.name
 }
+
+output "jenkins_log_group_name" {
+  description = "CloudWatch Logs group for Jenkins instance"
+  value       = aws_cloudwatch_log_group.jenkins.name
+}
