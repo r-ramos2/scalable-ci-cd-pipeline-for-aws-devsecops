@@ -23,7 +23,7 @@ jobs:
       run:
         working-directory: terraform
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.7
@@ -38,8 +38,46 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
       - name: Shellcheck
         run: |
           sudo apt-get install -y shellcheck
           shellcheck scripts/install_jenkins.sh
+
+  # Static IaC security scan with Checkov.
+  #
+  # Runs in hard-fail mode. Only intentional homelab trade-offs are skipped,
+  # each with an explicit rationale below. Any other HIGH/CRITICAL finding
+  # will break the build.
+  #
+  # Skipped checks and rationale:
+  #   CKV_AWS_88   -- Public IP on Jenkins: intentional; the Jenkins UI,
+  #                   SonarQube, and React app all require direct access.
+  #   CKV_AWS_130  -- Public subnet assigns public IPs: intentional;
+  #                   required for direct browser/SSH access to the server.
+  #   CKV_AWS_382  -- Unrestricted egress: lab instance needs outbound
+  #                   internet for package installs and Docker pulls.
+  #   CKV_AWS_158  -- CloudWatch log groups not KMS-encrypted: a CMK adds
+  #                   ~$1/month per key; AES256 is sufficient for a lab.
+  security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.4.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install Checkov
+        run: pip install -r requirements.txt
+
+      - name: Checkov scan (Terraform)
+        run: |
+          checkov \
+            --directory terraform \
+            --framework terraform \
+            --output cli \
+            --compact \
+            --skip-check CKV_AWS_88,CKV_AWS_130,CKV_AWS_382,CKV_AWS_158
