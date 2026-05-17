@@ -44,7 +44,7 @@ jobs:
           sudo apt-get install -y shellcheck
           shellcheck scripts/install_jenkins.sh
 
-  # Static IaC security scan with Checkov.
+  # Static IaC and container security scan with Checkov.
   #
   # Runs in hard-fail mode. Only intentional homelab trade-offs are skipped,
   # each with an explicit rationale below. Any other HIGH/CRITICAL finding
@@ -81,3 +81,11 @@ jobs:
             --output cli \
             --compact \
             --skip-check CKV_AWS_88,CKV_AWS_130,CKV_AWS_382,CKV_AWS_158
+
+      - name: Checkov scan (Dockerfile)
+        run: |
+          checkov \
+            --directory app \
+            --framework dockerfile \
+            --output cli \
+            --compact
