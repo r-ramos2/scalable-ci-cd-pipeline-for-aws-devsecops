@@ -221,15 +221,16 @@ resource "aws_iam_role_policy" "vpc_flow_logs" {
     Statement = [
       {
         Effect = "Allow"
-
         Action = [
-          "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents",
           "logs:DescribeLogGroups",
           "logs:DescribeLogStreams"
         ]
-        Resource = "*"
+        Resource = [
+          aws_cloudwatch_log_group.vpc_flow_logs.arn,
+          "${aws_cloudwatch_log_group.vpc_flow_logs.arn}:*"
+        ]
       }
     ]
   })
@@ -250,6 +251,15 @@ resource "aws_flow_log" "vpc" {
 # ============================================
 # 6. IAM Role for Jenkins Instance (CloudWatch Logs + SSM)
 # ============================================
+resource "aws_cloudwatch_log_group" "jenkins" {
+  name              = "/aws/ec2/${local.project_name}/jenkins"
+  retention_in_days = 14
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-jenkins-logs"
+  })
+}
+
 resource "aws_iam_role" "jenkins_instance" {
   name = "${local.project_name}-jenkins-role-${random_id.suffix.hex}"
 
@@ -282,13 +292,15 @@ resource "aws_iam_role_policy" "jenkins_policy" {
         Sid    = "AllowCloudWatchLogs"
         Effect = "Allow"
         Action = [
-          "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents",
           "logs:DescribeLogGroups",
           "logs:DescribeLogStreams"
         ]
-        Resource = "*"
+        Resource = [
+          aws_cloudwatch_log_group.jenkins.arn,
+          "${aws_cloudwatch_log_group.jenkins.arn}:*"
+        ]
       },
       {
         Sid    = "AllowSSMCore"
@@ -342,6 +354,10 @@ resource "aws_instance" "jenkins" {
   key_name                    = aws_key_pair.deployer.key_name
   iam_instance_profile        = aws_iam_instance_profile.jenkins.name
   user_data                   = file("${path.module}/../scripts/install_jenkins.sh")
+
+  # Replace the instance automatically when user_data changes.
+  # Without this, modifying the bootstrap script has no effect on a running instance.
+  user_data_replace_on_change = true
 
   root_block_device {
     volume_size           = var.root_volume_size
