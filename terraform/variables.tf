@@ -30,27 +30,27 @@ variable "availability_zone" {
   default     = "us-east-1a"
 }
 
-# AMI Lookup
-variable "linux2_ami_owner" {
-  description = "Owner ID for Amazon Linux 2 AMI"
+# AMI Lookup (Amazon Linux 2023 — supported until 2028)
+variable "ami_owner" {
+  description = "Owner ID for Amazon Linux 2023 AMI"
   type        = string
   default     = "amazon"
 }
 
-variable "linux2_ami_name_filter" {
-  description = "Filter for Amazon Linux 2 AMI"
+variable "ami_name_filter" {
+  description = "Filter for Amazon Linux 2023 AMI"
   type        = string
-  default     = "amzn2-ami-hvm-*-gp2"
+  default     = "al2023-ami-*-kernel-*-x86_64"
 }
 
 # Allowed CIDR for access (replace with your public IP /32)
 variable "allowed_cidr" {
-  description = "CIDR block permitted to reach instances (e.g. 203.0.113.25/32)"
+  description = "CIDR block permitted to reach instances (e.g. 203.0.113.25/32). Must not be 0.0.0.0/0."
   type        = string
 
   validation {
-    condition     = can(cidrhost(var.allowed_cidr, 0))
-    error_message = "allowed_cidr must be a valid IPv4 CIDR block, e.g. 203.0.113.25/32"
+    condition     = can(cidrhost(var.allowed_cidr, 0)) && var.allowed_cidr != "0.0.0.0/0"
+    error_message = "allowed_cidr must be a valid IPv4 CIDR block and must not be 0.0.0.0/0. Use your public IP: e.g. 203.0.113.25/32"
   }
 }
 
