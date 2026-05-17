@@ -1,0 +1,4 @@
+# Used by .github/workflows/ci.yml security-scan job.
+# Pinning to a major version keeps the cache key stable while still
+# receiving patch updates on cache miss (new checkov release).
+checkov>=3,<4
