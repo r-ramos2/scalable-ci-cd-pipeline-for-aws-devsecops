@@ -6,8 +6,9 @@ RUN npm ci --prefer-offline --no-audit
 COPY . .
 RUN npm run build
 
-# Runtime stage: serve with nginx (alpine)
-FROM nginx:stable-alpine
+# Runtime stage: serve with nginx (pinned version — update deliberately)
+# Check available tags at: https://hub.docker.com/_/nginx/tags
+FROM nginx:1.27-alpine
 
 # Ensure curl for healthcheck
 RUN apk add --no-cache curl
