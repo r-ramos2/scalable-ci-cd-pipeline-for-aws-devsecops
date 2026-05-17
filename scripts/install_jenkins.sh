@@ -1,5 +1,5 @@
 #!/bin/bash
-# Idempotent bootstrap script for Amazon Linux 2
+# Idempotent bootstrap script for Amazon Linux 2023 (also compatible with AL2)
 # Installs: Jenkins, Docker, SonarQube (containerized), Trivy
 # Logs everything to /var/log/bootstrap.log
 
@@ -12,6 +12,11 @@ if [ "$EUID" -ne 0 ]; then
 else
   SUDO=''
 fi
+
+# Pin the SonarQube image version to avoid unexpected breaking changes from
+# the floating 'lts-community' tag. Update this deliberately when upgrading.
+# Check available versions at: https://hub.docker.com/_/sonarqube/tags
+SONARQUBE_IMAGE="sonarqube:10.6-community"
 
 echo "=========================================="
 echo "[INFO] Bootstrap started at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -29,13 +34,12 @@ ${SUDO} yum install -y git wget unzip curl ca-certificates jq
 # ============================================
 echo "[INFO] Installing Java 17 (Amazon Corretto)..."
 
-# Try amazon-linux-extras first (AL2)
+# Try amazon-linux-extras first (AL2); AL2023 falls through to the RPM path
 if command -v amazon-linux-extras &> /dev/null; then
   ${SUDO} amazon-linux-extras enable corretto17 2>/dev/null || true
   ${SUDO} yum install -y java-17-amazon-corretto-devel
 else
-  # Fallback: Direct RPM installation for AL2023 or if extras not available
-  echo "[INFO] amazon-linux-extras not found, using direct RPM installation..."
+  echo "[INFO] amazon-linux-extras not found, using Corretto RPM repo (AL2023)..."
   ${SUDO} rpm --import https://yum.corretto.aws/corretto.key
   ${SUDO} wget -O /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo
   ${SUDO} yum install -y java-17-amazon-corretto-devel
@@ -114,7 +118,7 @@ done
 # ============================================
 # 5. Deploy SonarQube container with volumes
 # ============================================
-echo "[INFO] Deploying SonarQube container with persistent volumes..."
+echo "[INFO] Deploying SonarQube container (${SONARQUBE_IMAGE}) with persistent volumes..."
 
 # Create Docker volumes for persistence
 ${SUDO} docker volume create sonarqube_data 2>/dev/null || true
@@ -127,9 +131,9 @@ if ${SUDO} docker ps -a --format '{{.Names}}' | grep -q '^sonarqube$'; then
   ${SUDO} docker rm -f sonarqube
 fi
 
-# Pull latest LTS image
-echo "[INFO] Pulling SonarQube image..."
-if ! ${SUDO} docker pull sonarqube:lts-community; then
+# Pull pinned image
+echo "[INFO] Pulling SonarQube image: ${SONARQUBE_IMAGE}..."
+if ! ${SUDO} docker pull "${SONARQUBE_IMAGE}"; then
   echo "[ERROR] Failed to pull SonarQube image. Check internet connectivity."
   exit 1
 fi
@@ -143,26 +147,26 @@ ${SUDO} docker run -d \
   -v sonarqube_extensions:/opt/sonarqube/extensions \
   -v sonarqube_logs:/opt/sonarqube/logs \
   -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true \
-  sonarqube:lts-community
+  "${SONARQUBE_IMAGE}"
 
 echo "[INFO] SonarQube container started (allow 2-3 minutes for initialization)"
 
 # ============================================
-# 6. Install Trivy
+# 6. Install Trivy via official RPM repo (GPG-verified)
 # ============================================
-echo "[INFO] Installing Trivy..."
+echo "[INFO] Installing Trivy via official RPM repo..."
 if ! command -v trivy &> /dev/null; then
-  TRIVY_INSTALL_SCRIPT="/tmp/trivy-install.sh"
-  
-  # Download install script
-  if ! curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh -o "${TRIVY_INSTALL_SCRIPT}"; then
-    echo "[ERROR] Failed to download Trivy install script"
-    exit 1
-  fi
-  
-  # Run install script
-  ${SUDO} sh "${TRIVY_INSTALL_SCRIPT}" -b /usr/local/bin
-  rm -f "${TRIVY_INSTALL_SCRIPT}"
+  # Add the Aqua Security Trivy RPM repo with GPG verification.
+  # This avoids executing an unverified remote shell script.
+  cat > /etc/yum.repos.d/trivy.repo << 'EOF'
+[trivy]
+name=Trivy repository
+baseurl=https://aquasecurity.github.io/trivy-repo/rpm/releases/$basearch/
+gpgcheck=1
+enabled=1
+gpgkey=https://aquasecurity.github.io/trivy-repo/rpm/public.key
+EOF
+  ${SUDO} yum install -y trivy
 fi
 
 # Verify Trivy installation
@@ -206,15 +210,15 @@ echo "[INFO] Verifying service status..."
 echo "=========================================="
 
 if ${SUDO} systemctl is-active --quiet jenkins; then
-  echo "✅ Jenkins is running"
+  echo "Jenkins is running"
 else
-  echo "⚠️  Jenkins is not active yet (may still be starting)"
+  echo "Jenkins is not active yet (may still be starting)"
 fi
 
 if ${SUDO} systemctl is-active --quiet docker; then
-  echo "✅ Docker is running"
+  echo "Docker is running"
 else
-  echo "❌ Docker is not running"
+  echo "Docker is not running"
 fi
 
 echo ""
@@ -235,12 +239,12 @@ echo "=========================================="
 echo "[INFO] Bootstrap completed at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "=========================================="
 echo ""
-echo "📋 Next Steps:"
+echo "Next Steps:"
 echo "  1. Access Jenkins at: http://<instance-ip>:8080"
 echo "  2. Get initial admin password: sudo cat /var/lib/jenkins/secrets/initialAdminPassword"
 echo "  3. Access SonarQube at: http://<instance-ip>:9000 (default credentials: admin/admin)"
 echo "  4. IMPORTANT: Change SonarQube admin password immediately after first login!"
 echo "  5. Wait 2-3 minutes for SonarQube to fully initialize"
 echo ""
-echo "⚠️  IMPORTANT: Log out and log back in for Docker group membership to take effect"
+echo "IMPORTANT: Log out and log back in for Docker group membership to take effect"
 echo "=========================================="
