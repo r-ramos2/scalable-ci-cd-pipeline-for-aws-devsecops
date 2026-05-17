@@ -10,20 +10,26 @@ RUN npm run build
 # Check available tags at: https://hub.docker.com/_/nginx/tags
 FROM nginx:1.27-alpine
 
-# Ensure curl for healthcheck
+# Ensure curl is available for the HEALTHCHECK
 RUN apk add --no-cache curl
 
-# Remove default content
-RUN rm -rf /usr/share/nginx/html/*
+# Remove default static content and default vhost config
+RUN rm -rf /usr/share/nginx/html/* /etc/nginx/conf.d/default.conf
 
-# Copy built assets
-COPY --from=builder /app/build /usr/share/nginx/html
+# Custom vhost: listens on 8080 so the container runs without root privileges.
+# Also adds React Router fallback and baseline security headers.
+COPY --chown=nginx:nginx nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose HTTP
-EXPOSE 80
+# Copy built assets; chown to nginx so the non-root user can serve them
+COPY --from=builder --chown=nginx:nginx /app/build /usr/share/nginx/html
 
-# Healthcheck: use curl -f (returns non-zero if page not healthy)
+# Drop to the nginx system user — no root required at runtime
+USER nginx
+
+EXPOSE 8080
+
+# Healthcheck: curl -f returns non-zero on 4xx/5xx, so bad deploys fail fast
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost/ || exit 1
+  CMD curl -f http://localhost:8080/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
