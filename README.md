@@ -161,7 +161,7 @@ The bootstrap script automatically installs:
 
 4. Configure Global Tools (Manage Jenkins → Tools):
    * JDK 17 → name: `jdk17`
-   * NodeJS 16 → name: `node16`
+   * NodeJS 22 → name: `node22`
    * SonarQube Scanner → name: `sonar-scanner`
    * Dependency-Check → name: `DP-Check`
 
@@ -213,7 +213,7 @@ docker run -d -p 3000:80 amazon-frontend
 ```
 
 The app uses:
-* Multi-stage Docker build (node:16 → nginx:alpine)
+* Multi-stage Docker build (node:22-alpine → nginx:alpine)
 * `.dockerignore` to optimize build context (see `app/.dockerignore`)
 * Health checks for container monitoring
 
