@@ -215,15 +215,19 @@ pipeline {
     stage('Smoke Test') {
       steps {
         script {
-          // Verify the application is responding
+          // Verify the application is responding.
+          // Written as a POSIX sh loop (no bash brace expansion) because
+          // Jenkins sh steps execute under /bin/sh, not bash.
           sh '''
-            for i in {1..5}; do
-              if curl -f http://localhost:3000; then
-                echo "Smoke test passed!"
+            i=1
+            while [ $i -le 5 ]; do
+              if curl -sf http://localhost:3000 > /dev/null; then
+                echo "Smoke test passed on attempt $i"
                 exit 0
               fi
-              echo "Attempt $i failed, retrying..."
+              echo "Attempt $i failed, retrying in 5s..."
               sleep 5
+              i=$((i + 1))
             done
             echo "Smoke test failed after 5 attempts"
             exit 1
