@@ -1,6 +1,12 @@
 # Scalable CI/CD Pipeline for AWS DevSecOps
 
-[![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.5.0-blue)](https://www.terraform.io/) [![AWS](https://img.shields.io/badge/AWS-Cloud-orange)](https://aws.amazon.com/) [![Jenkins](https://img.shields.io/badge/Jenkins-LTS-blue)](https://www.jenkins.io/) [![Docker](https://img.shields.io/badge/Docker-%3E%3D20.10-blue)](https://www.docker.com/) [![SonarQube](https://img.shields.io/badge/SonarQube-LTS-blue)](https://www.sonarqube.org/) [![Trivy](https://img.shields.io/badge/Trivy-%3E%3D0.46-blue)](https://github.com/aquasecurity/trivy)
+[![Terraform](https://img.shields.io/badge/Terraform-1.5.7-blue)](https://www.terraform.io/) 
+[![AWS](https://img.shields.io/badge/AWS-Cloud-orange)](https://aws.amazon.com/) 
+[![Jenkins](https://img.shields.io/badge/Jenkins-LTS-blue)](https://www.jenkins.io/) 
+[![Docker](https://img.shields.io/badge/Docker-%3E%3D20.10-blue)](https://www.docker.com/) 
+[![SonarQube](https://img.shields.io/badge/SonarQube-LTS-blue)](https://www.sonarqube.org/) 
+[![Python](https://img.shields.io/badge/Python-3.13-blue)](https://www.python.org/) 
+[![Checkov](https://img.shields.io/badge/Checkov-latest-blue)](https://www.checkov.io/)
 
 AWS DevSecOps CI/CD pipeline deploying a React frontend on EC2 with Terraform, Jenkins, Docker, SonarQube, Trivy, and OWASP Dependency-Check.
 
