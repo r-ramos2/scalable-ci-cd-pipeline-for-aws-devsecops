@@ -5,7 +5,7 @@
 [![Jenkins](https://img.shields.io/badge/Jenkins-LTS-blue)](https://www.jenkins.io/) 
 [![Docker](https://img.shields.io/badge/Docker-%3E%3D20.10-blue)](https://www.docker.com/) 
 [![SonarQube](https://img.shields.io/badge/SonarQube-LTS-blue)](https://www.sonarqube.org/) 
-[![Python](https://img.shields.io/badge/Python-3.13-blue)](https://www.python.org/) 
+[![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/) 
 [![Checkov](https://img.shields.io/badge/Checkov-latest-blue)](https://www.checkov.io/)
 
 AWS DevSecOps CI/CD pipeline deploying a React frontend on EC2 with Terraform, Jenkins, Docker, SonarQube, Trivy, and OWASP Dependency-Check.
